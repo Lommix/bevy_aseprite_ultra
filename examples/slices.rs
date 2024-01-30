@@ -3,12 +3,9 @@ use bevy_sprity::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(ImagePlugin {
-                    default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
-                })
-        )
+        .add_plugins(DefaultPlugins.set(ImagePlugin {
+            default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
+        }))
         .add_plugins(bevy_sprity::BevySprityPlugin)
         .add_systems(Startup, setup)
         .run();
@@ -28,7 +25,11 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     });
 
     cmd.spawn(AsepriteSliceBundle {
-        slice: AsepriteSlice::new("ghost_blue").flip_x(),
+        slice: "ghost_blue".into(),
+        sprite: Sprite {
+            flip_x: true,
+            ..default()
+        },
         aseprite: server.load("ghost_slices.aseprite"),
         transform: Transform::from_translation(Vec3::new(32., 0., 0.)),
         ..Default::default()

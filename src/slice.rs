@@ -1,4 +1,4 @@
-use crate::loader::{Aseprite, Dirty};
+use crate::loader::Aseprite;
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
@@ -12,32 +12,20 @@ impl Plugin for AsepriteSlicePlugin {
 pub struct AsepriteSliceBundle {
     pub slice: AsepriteSlice,
     pub aseprite: Handle<Aseprite>,
+    pub sprite: Sprite,
     pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub visibility: Visibility,
+    pub inherited_visibility: InheritedVisibility,
+    pub view_visibility: ViewVisibility,
 }
 
 #[derive(Component, Default)]
-pub struct AsepriteSlice {
-    name: String,
-    flip_x: bool,
-    flip_y: bool,
-}
+pub struct AsepriteSlice(String);
 
 impl AsepriteSlice {
     pub fn new(name: &str) -> Self {
-        Self {
-            name: name.to_string(),
-            ..Default::default()
-        }
-    }
-
-    pub fn flip_x(mut self) -> Self {
-        self.flip_x = true;
-        self
-    }
-
-    pub fn flip_y(mut self) -> Self {
-        self.flip_y = true;
-        self
+        Self(name.to_string())
     }
 }
 
@@ -49,13 +37,16 @@ impl From<&str> for AsepriteSlice {
 
 fn insert_aseprite_slice(
     mut cmd: Commands,
-    query: Query<(Entity, &AsepriteSlice, &Transform, &Handle<Aseprite>), Without<Sprite>>,
+    mut query: Query<
+        (Entity, &mut Sprite, &AsepriteSlice, &Handle<Aseprite>),
+        Without<Handle<Image>>,
+    >,
     aseprites: Res<Assets<Aseprite>>,
     atlases: Res<Assets<TextureAtlas>>,
 ) {
     query
-        .iter()
-        .for_each(|(entity, slice, &transform, handle)| {
+        .iter_mut()
+        .for_each(|(entity, mut sprite, slice, handle)| {
             let Some(aseprite) = aseprites.get(handle) else {
                 return;
             };
@@ -70,20 +61,12 @@ fn insert_aseprite_slice(
 
             let slice_meta = aseprite
                 .slices
-                .get(&slice.name)
-                .expect(format!("Slice {} not found in {:?}", slice.name, handle.path()).as_str());
+                .get(&slice.0)
+                .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
 
-            cmd.entity(entity).insert(SpriteBundle {
-                sprite: Sprite {
-                    rect: Some(slice_meta.rect),
-                    flip_x: slice.flip_x,
-                    flip_y: slice.flip_y,
-                    anchor: Anchor::from(slice_meta),
-                    ..default()
-                },
-                texture: atlas.texture.clone(),
-                transform,
-                ..default()
-            });
+            sprite.rect = Some(slice_meta.rect);
+            sprite.anchor = Anchor::from(slice_meta);
+
+            cmd.entity(entity).insert(atlas.texture.clone());
         });
 }

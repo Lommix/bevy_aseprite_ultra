@@ -25,6 +25,7 @@ pub struct Aseprite {
     pub atlas: Option<Handle<TextureAtlas>>,
     pub slices: HashMap<String, SliceMeta>,
     pub tags: HashMap<String, TagMeta>,
+    pub frame_durations: Vec<std::time::Duration>,
 
     atlas_buffer: Vec<Handle<Image>>,
     atlas_frame_lookup: Vec<usize>,
@@ -136,6 +137,7 @@ impl AssetLoader for AsepriteLoader {
                     },
                 );
             });
+
             // ---------------------------- tags
             let mut tags = HashMap::new();
             raw.tags().iter().for_each(|tag| {
@@ -149,10 +151,18 @@ impl AssetLoader for AsepriteLoader {
                 );
             });
 
+            // ---------------------------- frames
+            let frame_durations = raw
+                .frames()
+                .iter()
+                .map(|frame| std::time::Duration::from_millis(u64::from(frame.duration)))
+                .collect();
+
             Ok(Aseprite {
                 atlas_buffer,
                 slices,
                 tags,
+                frame_durations,
                 ..default()
             })
         })
@@ -207,13 +217,12 @@ fn build_atlas(
             asesprite.atlas = Some(atlases.add(atlas));
 
             // @todo, can this be done better?
+            // cleaning up dirty entities
             enties
                 .iter()
                 .filter(|(_, handle)| handle.id() == *id)
                 .for_each(|(entity, _)| {
-                    cmd.entity(entity)
-                        .remove::<Sprite>()
-                        .remove::<Handle<Image>>();
+                    cmd.entity(entity).remove::<Handle<Image>>();
                 });
         }
         _ => {}

@@ -19,6 +19,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
-        animation: "walk-right".into(),
-    });
+        ..default()
+    })
+    .insert(AnimationTag::from("walk-right"));
 }
