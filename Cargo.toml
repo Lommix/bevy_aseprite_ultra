@@ -16,4 +16,5 @@ features = ["file_watcher"]
 
 [dependencies]
 anyhow = "1.0.75"
-sprity = { git = "https://github.com/Lommix/sprity.git", branch = "main" }
+# sprity = { git = "https://github.com/Lommix/sprity.git", branch = "main" }
+sprity = { path = "../sprity" }

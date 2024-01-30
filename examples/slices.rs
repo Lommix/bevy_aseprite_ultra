@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-// use bevy_sprity::slice::{AsepriteSlice, AsepriteSliceBundle};
 use bevy_sprity::prelude::*;
 
 fn main() {
@@ -9,14 +8,6 @@ fn main() {
                 .set(ImagePlugin {
                     default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
                 })
-                // .set(AssetPlugin {
-                //     watch_for_changes_override : Some(true),
-                //     ..default()
-                // })
-                .set(WindowPlugin {
-                    primary_window: Some(Window { ..default() }),
-                    ..default()
-                }),
         )
         .add_plugins(bevy_sprity::BevySprityPlugin)
         .add_systems(Startup, setup)

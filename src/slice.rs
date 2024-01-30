@@ -4,7 +4,7 @@ use bevy::{prelude::*, sprite::Anchor};
 pub struct AsepriteSlicePlugin;
 impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (insert_aseprite_slice, update_aseprite_slice));
+        app.add_systems(Update, insert_aseprite_slice);
     }
 }
 
@@ -68,7 +68,10 @@ fn insert_aseprite_slice(
                 return;
             };
 
-            let slice_meta = aseprite.slices.get(&slice.name).expect("slice not found");
+            let slice_meta = aseprite
+                .slices
+                .get(&slice.name)
+                .expect(format!("Slice {} not found in {:?}", slice.name, handle.path()).as_str());
 
             cmd.entity(entity).insert(SpriteBundle {
                 sprite: Sprite {
@@ -83,50 +86,4 @@ fn insert_aseprite_slice(
                 ..default()
             });
         });
-}
-
-fn update_aseprite_slice(
-    mut query: Query<
-        (
-            Entity,
-            &AsepriteSlice,
-            &mut Sprite,
-            &mut Handle<Image>,
-            &Handle<Aseprite>,
-        ),
-        With<Dirty>,
-    >,
-    mut cmd: Commands,
-    aseprites: Res<Assets<Aseprite>>,
-    atlases: Res<Assets<TextureAtlas>>,
-) {
-    query.iter_mut().for_each(
-        |(entity, slice, mut sprite, mut image_handle, aseprite_handle)| {
-            let Some(aseprite) = aseprites.get(aseprite_handle) else {
-                return;
-            };
-
-            let Some(atlas_handle) = &aseprite.atlas else {
-                return;
-            };
-
-            let Some(atlas) = atlases.get(atlas_handle) else {
-                return;
-            };
-
-            info!("update_aseprite_slice");
-
-            let slice_meta = aseprite.slices.get(&slice.name).expect("slice not found");
-            sprite.anchor = Anchor::from(slice_meta);
-            sprite.rect = Some(slice_meta.rect);
-
-            //@todo sync?
-            // sprite.flip_x = slice.flip_x;
-            // sprite.flip_y = slice.flip_y;
-
-            *image_handle = atlas.texture.clone();
-
-            cmd.entity(entity).remove::<Dirty>();
-        },
-    );
 }

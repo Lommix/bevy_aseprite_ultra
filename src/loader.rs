@@ -6,7 +6,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use sprity::aseprite::loader::AsepriteFile;
+use sprity::aseprite::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 
 pub struct AsepriteLoaderPlugin;
 impl Plugin for AsepriteLoaderPlugin {
@@ -24,6 +24,7 @@ impl Plugin for AsepriteLoaderPlugin {
 pub struct Aseprite {
     pub atlas: Option<Handle<TextureAtlas>>,
     pub slices: HashMap<String, SliceMeta>,
+    pub tags: HashMap<String, TagMeta>,
 
     atlas_buffer: Vec<Handle<Image>>,
     atlas_frame_lookup: Vec<usize>,
@@ -33,6 +34,13 @@ impl Aseprite {
     pub fn frame_index(&self, frame: usize) -> usize {
         self.atlas_frame_lookup[frame]
     }
+}
+
+#[derive(Debug)]
+pub struct TagMeta {
+    pub direction: AnimationDirection,
+    pub range: std::ops::Range<u16>,
+    pub repeat: u16,
 }
 
 #[derive(Debug)]
@@ -96,6 +104,7 @@ impl AssetLoader for AsepriteLoader {
                 atlas_buffer.push(handle);
             }
 
+            // ----------------------------- slices
             let mut slices = HashMap::new();
             raw.slices().iter().for_each(|slice| {
                 let slice_key = slice.slice_keys.first().unwrap();
@@ -127,10 +136,23 @@ impl AssetLoader for AsepriteLoader {
                     },
                 );
             });
+            // ---------------------------- tags
+            let mut tags = HashMap::new();
+            raw.tags().iter().for_each(|tag| {
+                tags.insert(
+                    tag.name.clone(),
+                    TagMeta {
+                        direction: tag.direction,
+                        range: tag.range.clone(),
+                        repeat: tag.repeat.unwrap_or(0),
+                    },
+                );
+            });
 
             Ok(Aseprite {
                 atlas_buffer,
                 slices,
+                tags,
                 ..default()
             })
         })
@@ -145,7 +167,7 @@ impl AssetLoader for AsepriteLoader {
 pub(crate) struct Dirty;
 
 fn build_atlas(
-    enties: Query<(Entity, &Handle<Aseprite>), (With<Handle<Image>>, Without<Dirty>)>,
+    enties: Query<(Entity, &Handle<Aseprite>), (With<Handle<Image>>, With<Sprite>)>,
     mut events: EventReader<AssetEvent<Aseprite>>,
     mut images: ResMut<Assets<Image>>,
     mut atlases: ResMut<Assets<TextureAtlas>>,
@@ -184,11 +206,14 @@ fn build_atlas(
 
             asesprite.atlas = Some(atlases.add(atlas));
 
+            // @todo, can this be done better?
             enties
                 .iter()
                 .filter(|(_, handle)| handle.id() == *id)
                 .for_each(|(entity, _)| {
-                    cmd.entity(entity).insert(Dirty);
+                    cmd.entity(entity)
+                        .remove::<Sprite>()
+                        .remove::<Handle<Image>>();
                 });
         }
         _ => {}
