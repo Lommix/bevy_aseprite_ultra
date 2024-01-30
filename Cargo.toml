@@ -1,0 +1,19 @@
+[package]
+name = "bevy_sprity"
+version = "0.1.0"
+edition = "2021"
+authors = ["Lorenz Mielke"]
+description = "A Bevy plugin for directly loading spritesheets and animations from aseprite binary files"
+
+[dependencies.bevy]
+version = "0.12.1"
+default-features = true
+features = ["bevy_render", "bevy_asset", "bevy_sprite", "wayland", "multi-threaded"]
+
+[dev-dependencies.bevy]
+default-features = false
+features = ["file_watcher"]
+
+[dependencies]
+anyhow = "1.0.75"
+sprity = { git = "https://github.com/Lommix/sprity.git", branch = "main" }
