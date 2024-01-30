@@ -155,11 +155,13 @@ fn insert_aseprite_animation(
                 None => None,
             };
 
-            info!("inserting animation for {:?}", entity);
-
             let start_frame_index = usize::from(maybe_tag.map(|tag| tag.range.start).unwrap_or(0));
+            let end_frame_index = usize::from(
+                maybe_tag
+                    .map(|tag| tag.range.end - 1)
+                    .unwrap_or(aseprite.frame_durations.len() as u16 - 1),
+            );
 
-            sprite.rect = Some(atlas.textures[start_frame_index]);
             frame.index = start_frame_index;
             frame.elapsed = std::time::Duration::ZERO;
             *state = AnimationState::Playing;
@@ -171,11 +173,14 @@ fn insert_aseprite_animation(
                 *direction = AnimationDirection::from(tag.direction);
                 frame.current_direction = match *direction {
                     AnimationDirection::Reverse | AnimationDirection::PingPongReverse => {
+                        frame.index = end_frame_index;
                         PlayDirection::Backward
                     }
                     _ => PlayDirection::Forward,
                 };
             }
+
+            sprite.rect = Some(atlas.textures[end_frame_index]);
         },
     );
 }
@@ -311,7 +316,13 @@ fn next_frame(
                 PlayDirection::Backward => frame.index.checked_sub(1).unwrap_or(0),
             };
 
-            if next >= animation_range.end {
+            let is_forward = match frame.current_direction {
+                PlayDirection::Forward => true,
+                PlayDirection::Backward => false,
+            };
+
+            //wrong!!
+            if next >= animation_range.end && is_forward {
                 match *repeat {
                     AnimationRepeat::Loop => {
                         frame.current_direction = PlayDirection::Backward;
@@ -327,7 +338,7 @@ fn next_frame(
                         }
                     }
                 };
-            } else if next < animation_range.start {
+            } else if next <= animation_range.start && !is_forward {
                 match *repeat {
                     AnimationRepeat::Loop => {
                         frame.current_direction = PlayDirection::Forward;
