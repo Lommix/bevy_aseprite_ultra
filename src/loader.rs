@@ -32,7 +32,7 @@ pub struct Aseprite {
 }
 
 impl Aseprite {
-    pub fn frame_index(&self, frame: usize) -> usize {
+    pub fn get_atlas_index(&self, frame: usize) -> usize {
         self.atlas_frame_lookup[frame]
     }
 }

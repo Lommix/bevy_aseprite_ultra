@@ -180,7 +180,8 @@ fn insert_aseprite_animation(
                 };
             }
 
-            sprite.rect = Some(atlas.textures[end_frame_index]);
+            let atlas_frame_index = aseprite.get_atlas_index(frame.index);
+            sprite.rect = Some(atlas.textures[atlas_frame_index]);
         },
     );
 }
@@ -242,7 +243,9 @@ fn update_aseprite_animation(
             frame.elapsed += std::time::Duration::from_secs_f32(time.delta_seconds() * speed.0);
 
             let frame_time = aseprite.frame_durations.get(frame.index).unwrap();
-            sprite.rect = Some(atlas.textures[frame.index]);
+
+            let atlas_frame_index = aseprite.get_atlas_index(frame.index);
+            sprite.rect = Some(atlas.textures[atlas_frame_index]);
 
             if frame.elapsed > *frame_time {
                 if let Err(NexFrameError::AnimationFinished) =
