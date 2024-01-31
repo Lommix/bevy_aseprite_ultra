@@ -15,6 +15,23 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
+/// The `AsepriteAnimationBundle` bundles the components needed to render an animation of an aseprite.
+/// ```rust
+/// // example from examples/animation.rs
+/// command.spawn(AsepriteAnimationBundle {
+///     aseprite: server.load("player.aseprite"),
+///     transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
+///     animation_speed: AnimationSpeed(0.5),
+///     sprite: Sprite {
+///         flip_x: true,
+///         ..default()
+///     },
+///     ..default()
+/// })
+/// ```
+/// `animation_frame`, `animation_repeat`, `animation_direction` and `animation_state` will be
+/// loaded from the aseprite file, but can be interacted with while running.
+/// Beware, that changes get lost when reloading the aseprite file.
 #[derive(Bundle, Default)]
 pub struct AsepriteAnimationBundle {
     pub aseprite: Handle<Aseprite>,
@@ -34,8 +51,8 @@ pub struct AsepriteAnimationBundle {
 #[derive(Component, Default)]
 pub struct AnimationFrame {
     pub index: usize,
-    pub elapsed: std::time::Duration,
-    pub current_direction: PlayDirection,
+    elapsed: std::time::Duration,
+    current_direction: PlayDirection,
 }
 
 #[derive(Component, Default)]
@@ -46,7 +63,7 @@ pub enum AnimationState {
 }
 
 #[derive(Default)]
-pub enum PlayDirection {
+enum PlayDirection {
     #[default]
     Forward,
     Backward,
@@ -242,7 +259,9 @@ fn update_aseprite_animation(
 
             frame.elapsed += std::time::Duration::from_secs_f32(time.delta_seconds() * speed.0);
 
-            let frame_time = aseprite.frame_durations.get(frame.index).unwrap();
+            let Some(frame_time) = aseprite.frame_durations.get(frame.index) else {
+                return;
+            };
 
             let atlas_frame_index = aseprite.get_atlas_index(frame.index);
             sprite.rect = Some(atlas.textures[atlas_frame_index]);

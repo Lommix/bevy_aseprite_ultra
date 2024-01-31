@@ -8,6 +8,23 @@ impl Plugin for AsepriteSlicePlugin {
     }
 }
 
+/// The `AsepriteSliceBundle` bundles the components needed to render a slice of an aseprite.
+/// This is intended to be used for static Sprite Atlases.
+/// So only the first frame of your aseprite file will be considered.
+///
+/// ```rust
+/// // example from examples/slices.rs
+/// command.spawn(AsepriteSliceBundle {
+///    slice: "ghost_red".into(),
+///    aseprite: server.load("ghost_slices.aseprite"),
+///    sprite: Sprite {
+///         flip_x: true,
+///         ..default()
+///    },
+///    transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
+///     ..default()
+/// });
+/// ```
 #[derive(Bundle, Default)]
 pub struct AsepriteSliceBundle {
     pub slice: AsepriteSlice,
@@ -20,6 +37,8 @@ pub struct AsepriteSliceBundle {
     pub view_visibility: ViewVisibility,
 }
 
+/// The `AsepriteSlice` component is used to specify which slice of an aseprite should be rendered.
+/// If the slice is not found in the aseprite file, the game will panic.
 #[derive(Component, Default)]
 pub struct AsepriteSlice(String);
 
