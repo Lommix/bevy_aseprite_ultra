@@ -3,7 +3,13 @@
 The ultimate bevy aseprite plugin. This plugin allows you to import aseprite files into bevy, with 100% unbreakable
 hot reloading. You can also import static sprites from an aseprite atlas type file using slices with functional pivot offsets!
 
-# Supported Aseprite Features
+| Bevy Version | Plugin Version |
+| -----------: | -------------: |
+|       0.12.1 |          0.1.0 |
+
+_lower versions of bevy are not supported_
+
+## Supported aseprite features
 
 -   Animations
 -   Tags
@@ -12,14 +18,21 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 -   Blend modes
 -   Static slices and pivot offsets
 
-# Features
+## Features in bevy
 
 -   Hot reload anything, anytime, anywhere!
 -   Full control over animations using Components.
 -   One shot animations and events when they finish.
 -   Static sprites with slices. Use aseprite for all your icon and ui needs!
 
-# Example
+(for hotreload to work, you must have the `file_watcher` cargo dependency for bevy installed)
+
+## Example
+
+```bash
+cargo run --example slices
+cargo run --example animations
+```
 
 ![Example](docs/example.gif)
 
