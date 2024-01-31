@@ -7,16 +7,17 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 -   Animations
 -   Tags
--   Frame Duration, Repeat, and Animation Direction
--   Layer Visibility
--   Blend Modes
--   Static Slices and Pivot offsets
+-   Frame duration, repeat, and animation direction
+-   Layer visibility
+-   Blend modes
+-   Static slices and pivot offsets
 
 # Features
 
 -   Hot reload anything, anytime, anywhere!
 -   Full control over animations using Components.
 -   One shot animations and events when they finish.
+-   Static sprites with slices. Use aseprite for all your icon and ui needs!
 
 # Example
 
@@ -26,11 +27,11 @@ There are two main Bundles added by this plugin, `AsepriteAnimationBundle` and `
 
 ```rust
 use bevy::prelude::*;
-use bevy_sprity::prelude::*;
+use bevy_aseprite_ultra::prelude::*;
 
 ...
 
-// Load the an animation from a aseprite file
+// Load the an animation from an aseprite file
 fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
@@ -50,10 +51,9 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
         },
         ..default()
     });
-        // insert a optional animation to play, if none is provided, all frames will be played in `forward` direction
 }
 
-// Load a static slice from a aseprite file
+// Load a static slice from an aseprite file
 fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn(AsepriteSliceBundle {
         slice: "ghost_blue".into(),
