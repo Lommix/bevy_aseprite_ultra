@@ -20,6 +20,9 @@ hot reloading. You can also import static sprites from an aseprite atlas using s
 
 # Example
 
+
+![Example](docs/test.gif)
+
 There are two main Bundles added by this plugin, `AsepriteAnimationBundle` and `AsepriteSliceBundle`.
 
 ```rust

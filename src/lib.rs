@@ -14,7 +14,6 @@ impl Plugin for BevySprityPlugin {
     }
 }
 
-#[allow(unused)]
 pub mod prelude {
     pub use crate::animation::{
         AnimationDirection, AnimationFinished, AnimationFrame, AnimationRepeat, AnimationSpeed,
