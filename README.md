@@ -49,7 +49,7 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        animation_control: AnimationControl::default()
+        animation: Animation::default()
                 .with_tag("walk-right")
                 .with_speed(2.),
                 // These options can be manipulated at runtime, but if a tag

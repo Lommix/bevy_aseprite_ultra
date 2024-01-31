@@ -21,7 +21,7 @@ impl Plugin for AsepriteAnimationPlugin {
 /// command.spawn(AsepriteAnimationBundle {
 ///     aseprite: server.load("player.aseprite"),
 ///     transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-///     animation_control: AnimationControl::default().with_tag("walk-right"),
+///     animation: Animation::default().with_tag("walk-right"),
 ///     sprite: Sprite {
 ///         flip_x: true,
 ///         ..default()
@@ -34,7 +34,7 @@ impl Plugin for AsepriteAnimationPlugin {
 #[derive(Bundle, Default)]
 pub struct AsepriteAnimationBundle {
     pub aseprite: Handle<Aseprite>,
-    pub animation_control: AnimationControl,
+    pub animation: Animation,
     pub animation_state: AnimationState,
     pub sprite: Sprite,
     pub transform: Transform,
@@ -45,7 +45,7 @@ pub struct AsepriteAnimationBundle {
 }
 
 #[derive(Component)]
-pub struct AnimationControl {
+pub struct Animation {
     tag: Option<String>,
     speed: f32,
     playing: bool,
@@ -53,7 +53,7 @@ pub struct AnimationControl {
     direction: AnimationDirection,
 }
 
-impl Default for AnimationControl {
+impl Default for Animation {
     fn default() -> Self {
         Self {
             tag: None,
@@ -65,7 +65,7 @@ impl Default for AnimationControl {
     }
 }
 
-impl AnimationControl {
+impl Animation {
     pub fn with_speed(mut self, speed: f32) -> Self {
         self.speed = speed;
         self
@@ -84,9 +84,9 @@ impl AnimationControl {
     }
 }
 
-impl From<&str> for AnimationControl {
+impl From<&str> for Animation {
     fn from(tag: &str) -> Self {
-        AnimationControl {
+        Animation {
             tag: Some(tag.to_string()),
             speed: 1.0,
             ..Default::default()
@@ -163,7 +163,7 @@ fn insert_aseprite_animation(
             Entity,
             &mut Sprite,
             &mut AnimationState,
-            &mut AnimationControl,
+            &mut Animation,
             &Handle<Aseprite>,
         ),
         Without<Handle<Image>>,
@@ -241,7 +241,7 @@ fn update_aseprite_animation(
         Entity,
         &mut AnimationState,
         &mut Sprite,
-        &mut AnimationControl,
+        &mut Animation,
         &Handle<Aseprite>,
     )>,
     mut events: EventWriter<AnimationEvents>,
@@ -312,14 +312,14 @@ enum FrameTransition {
 
 fn next_frame(
     state: &mut AnimationState,
-    control: &mut AnimationControl,
+    animation: &mut Animation,
     animation_range: &Range<usize>,
 ) -> Option<FrameTransition> {
-    match control.direction {
+    match animation.direction {
         AnimationDirection::Forward => {
             let next = state.current_frame + 1;
             if next >= animation_range.end {
-                match control.repeat {
+                match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = animation_range.start;
                         return Some(FrameTransition::AnimationLoopFinished);
@@ -327,7 +327,7 @@ fn next_frame(
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_frame = animation_range.start;
-                            control.repeat = AnimationRepeat::Count(count - 1);
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             return Some(FrameTransition::AnimationFinished);
                         }
@@ -340,7 +340,7 @@ fn next_frame(
         AnimationDirection::Reverse => {
             let next = state.current_frame.checked_sub(1).unwrap_or(0);
             if next < animation_range.start {
-                match control.repeat {
+                match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = animation_range.end - 1;
                         return Some(FrameTransition::AnimationLoopFinished);
@@ -348,7 +348,7 @@ fn next_frame(
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_frame = animation_range.end - 1;
-                            control.repeat = AnimationRepeat::Count(count - 1);
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             return Some(FrameTransition::AnimationFinished);
                         }
@@ -370,7 +370,7 @@ fn next_frame(
             };
 
             if next >= animation_range.end && is_forward {
-                match control.repeat {
+                match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Backward;
                         state.current_frame = animation_range.end - 1;
@@ -380,14 +380,14 @@ fn next_frame(
                         if count > 0 {
                             state.current_direction = PlayDirection::Backward;
                             state.current_frame = animation_range.end - 1;
-                            control.repeat = AnimationRepeat::Count(count - 1);
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             return Some(FrameTransition::AnimationFinished);
                         }
                     }
                 };
             } else if next <= animation_range.start && !is_forward {
-                match control.repeat {
+                match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Forward;
                         state.current_frame = animation_range.start;
@@ -397,7 +397,7 @@ fn next_frame(
                         if count > 0 {
                             state.current_direction = PlayDirection::Forward;
                             state.current_frame = animation_range.start;
-                            control.repeat = AnimationRepeat::Count(count - 1);
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             return Some(FrameTransition::AnimationFinished);
                         }

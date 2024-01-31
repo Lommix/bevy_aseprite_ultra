@@ -20,14 +20,14 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
-        animation_control: AnimationControl::default().with_tag("walk-right"),
+        animation: Animation::default().with_tag("walk-right"),
         transform: Transform::from_translation(Vec3::new(15., 0., 0.)),
         ..default()
     });
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
-        animation_control: AnimationControl::default()
+        animation: Animation::default()
             .with_tag("walk-up")
             .with_speed(0.5),
         transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
@@ -36,7 +36,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
-        animation_control: AnimationControl::default().with_tag("walk-down"),
+        animation: Animation::default().with_tag("walk-down"),
         transform: Transform::from_translation(Vec3::new(-15., 0., 0.)),
         ..default()
     });
@@ -50,7 +50,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        animation_control: AnimationControl::default().with_tag("walk-right"),
+        animation: Animation::default().with_tag("walk-right"),
         sprite: Sprite {
             flip_x: true,
             ..default()
@@ -60,7 +60,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("ball.aseprite"),
-        animation_control: AnimationControl::default().with_tag("squash"),
+        animation: Animation::default().with_tag("squash"),
         transform: Transform::from_translation(Vec3::new(0., 20., 0.)),
         ..default()
     });
