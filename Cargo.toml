@@ -1,11 +1,11 @@
 [package]
-name = "bevy_sprity"
+name = "bevy_aseprite_ultra"
 version = "0.1.0"
 edition = "2021"
 authors = ["Lorenz Mielke"]
 description = "A Bevy plugin for directly loading spritesheets and animations from aseprite binary files with hot reloading support."
 keywords = ["bevy", "aseprite", "atlas", "loader", "animation"]
-repository = "https://github.com/Lommix/bevy_sprity.git"
+repository = "https://github.com/Lommix/bevy_aseprite_ultra.git"
 license = "MIT"
 
 [dependencies.bevy]

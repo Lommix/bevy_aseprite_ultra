@@ -1,12 +1,12 @@
 use bevy::prelude::*;
-use bevy_sprity::prelude::*;
+use bevy_aseprite_ultra::prelude::*;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
         }))
-        .add_plugins(bevy_sprity::BevySprityPlugin)
+        .add_plugins(BevySprityPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, events)
         .run();
@@ -20,28 +20,29 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
+        animation_control: AnimationControl::default().with_tag("walk-right"),
         transform: Transform::from_translation(Vec3::new(15., 0., 0.)),
         ..default()
-    })
-    .insert(AnimationTag::from("walk-right"));
+    });
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
+        animation_control: AnimationControl::default()
+            .with_tag("walk-up")
+            .with_speed(0.5),
         transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
         ..default()
-    })
-    .insert(AnimationTag::from("walk-up"));
+    });
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
+        animation_control: AnimationControl::default().with_tag("walk-down"),
         transform: Transform::from_translation(Vec3::new(-15., 0., 0.)),
         ..default()
-    })
-    .insert(AnimationTag::from("walk-down"));
+    });
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
-        animation_speed: AnimationSpeed(3.0),
         transform: Transform::from_translation(Vec3::new(0., -20., 0.)),
         ..default()
     });
@@ -49,24 +50,20 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        animation_speed: AnimationSpeed(0.5),
+        animation_control: AnimationControl::default().with_tag("walk-right"),
         sprite: Sprite {
             flip_x: true,
             ..default()
         },
         ..default()
-    })
-    .insert(AnimationTag::from("walk-right"));
+    });
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("ball.aseprite"),
-        animation_speed: AnimationSpeed(2.0),
+        animation_control: AnimationControl::default().with_tag("squash"),
         transform: Transform::from_translation(Vec3::new(0., 20., 0.)),
         ..default()
-    })
-    .insert(AnimationTag::from("squash"));
-
-
+    });
 
     cmd.spawn(AsepriteSliceBundle {
         slice: "ghost_red".into(),
@@ -85,7 +82,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
         transform: Transform::from_translation(Vec3::new(80., 0., 0.)),
         ..Default::default()
     });
-
+}
 
 fn events(mut events: EventReader<AnimationEvents>, mut cmd: Commands) {
     for event in events.read() {

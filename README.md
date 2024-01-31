@@ -1,7 +1,7 @@
-# Bevy Sprity
+# Bevy Aseprite Ultra
 
-The ultimate bevy Aseprite plugin. This plugin allows you to import aseprite files into bevy, with 100% unbreakable
-hot reloading. You can also import static sprites from an aseprite atlas using slices with functional pivot offsets!
+The ultimate bevy aseprite plugin. This plugin allows you to import aseprite files into bevy, with 100% unbreakable
+hot reloading. You can also import static sprites from an aseprite atlas type file using slices with functional pivot offsets!
 
 # Supported Aseprite Features
 
@@ -14,15 +14,9 @@ hot reloading. You can also import static sprites from an aseprite atlas using s
 
 # Features
 
--   Hotreload anything, anytime, anywhere!
+-   Hot reload anything, anytime, anywhere!
 -   Full control over animations using Components.
--   Oneshot animations and events when they finish.
-
-# Installation
-
-```rust
-
-```
+-   One shot animations and events when they finish.
 
 # Example
 
@@ -41,18 +35,22 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        // set a custom animation speed multiplier
-        animation_speed: AnimationSpeed(0.5),
+        animation_control: AnimationControl::default()
+                .with_tag("walk-right")
+                .with_speed(2.),
+                // These options can be manipulated at runtime, but if a tag
+                // is provided, they are overwritten from the aseprite animation
+                // setting at first load
+                .with_direction(AnimationDirection::PingPong),
+                .with_repeat(AnimationRepeat::Count(42)),
         // you can override the default sprite settings here
-        // the `rect` will be overriden by the animation
         sprite: Sprite {
             flip_x: true,
             ..default()
         },
         ..default()
-    })
+    });
         // insert a optional animation to play, if none is provided, all frames will be played in `forward` direction
-        .insert(AnimationTag::from("walk-right"));
 }
 
 // Load a static slice from a aseprite file
@@ -61,7 +59,7 @@ fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
         slice: "ghost_blue".into(),
         // you can override the default sprite settings here
         // the `rect` will be overriden by the slice
-        // if there is a pivot provided in the aseprite slice, it will also be overwritten
+        // if there is a pivot provided in the aseprite slice, the `anchor` will be overwritten
         // and changes the origin of rotation.
         sprite: Sprite {
             flip_x: true,

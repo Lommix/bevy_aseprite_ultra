@@ -57,7 +57,7 @@ impl From<&SliceMeta> for Anchor {
             Some(pivot) => {
                 let size = value.rect.size();
                 let uv = (pivot.min(size).max(Vec2::ZERO) / size) - Vec2::new(0.5, 0.5);
-                Anchor::Custom(uv)
+                Anchor::Custom(uv * Vec2::new(1.0, -1.0))
             }
             None => Anchor::Center,
         }

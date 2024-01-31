@@ -16,8 +16,8 @@ impl Plugin for BevySprityPlugin {
 
 pub mod prelude {
     pub use crate::animation::{
-        AnimationDirection, AnimationEvents, AnimationFrame, AnimationRepeat, AnimationSpeed,
-        AnimationTag, AsepriteAnimationBundle,
+        AnimationControl, AnimationDirection, AnimationEvents, AnimationRepeat,
+        AsepriteAnimationBundle,
     };
     pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle};
     pub use crate::BevySprityPlugin;

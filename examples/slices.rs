@@ -1,12 +1,12 @@
 use bevy::prelude::*;
-use bevy_sprity::prelude::*;
+use bevy_aseprite_ultra::prelude::*;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
         }))
-        .add_plugins(bevy_sprity::BevySprityPlugin)
+        .add_plugins(BevySprityPlugin)
         .add_systems(Startup, setup)
         .run();
 }
@@ -20,7 +20,8 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn(AsepriteSliceBundle {
         slice: "ghost_red".into(),
         aseprite: server.load("ghost_slices.aseprite"),
-        transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
+        transform: Transform::from_translation(Vec3::new(0., 0., 0.))
+            .with_rotation(Quat::from_rotation_z(0.2)),
         ..Default::default()
     });
 
@@ -35,10 +36,3 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
         ..Default::default()
     });
 }
-
-
-// fn despawn(mut events : EventReader<AnimationEvent>, mut cmd: Commands) {
-//     for event in events.iter() {
-//
-//     }
-// }
