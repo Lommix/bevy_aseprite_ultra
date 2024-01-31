@@ -7,7 +7,7 @@ use sprity::aseprite::binary::chunks::tags::AnimationDirection as RawDirection;
 pub struct AsepriteAnimationPlugin;
 impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<AnimationFinished>();
+        app.add_event::<AnimationEvents>();
         app.add_systems(
             Update,
             (insert_aseprite_animation, update_aseprite_animation).chain(),
@@ -85,8 +85,11 @@ impl From<&str> for AnimationTag {
     }
 }
 
-#[derive(Event)]
-pub struct AnimationFinished(Entity);
+#[derive(Event, Debug)]
+pub enum AnimationEvents {
+    Finished(Entity),
+    LoopCycleFinished(Entity),
+}
 
 #[derive(Default, Component)]
 pub enum AnimationDirection {
@@ -214,7 +217,7 @@ fn update_aseprite_animation(
         &AnimationDirection,
         &Handle<Aseprite>,
     )>,
-    mut events: EventWriter<AnimationFinished>,
+    mut events: EventWriter<AnimationEvents>,
     tag_query: Query<&AnimationTag>,
     asesprites: Res<Assets<Aseprite>>,
     atlases: Res<Assets<TextureAtlas>>,
@@ -267,12 +270,16 @@ fn update_aseprite_animation(
             sprite.rect = Some(atlas.textures[atlas_frame_index]);
 
             if frame.elapsed > *frame_time {
-                if let Err(NexFrameError::AnimationFinished) =
-                    next_frame(&mut frame, &mut repeat, direction, &animation_range)
-                {
-                    *state = AnimationState::Stoped;
-                    events.send(AnimationFinished(entity));
-                    return;
+                match next_frame(&mut frame, &mut repeat, direction, &animation_range) {
+                    Some(FrameTransition::AnimationFinished) => {
+                        *state = AnimationState::Stoped;
+                        events.send(AnimationEvents::Finished(entity));
+                        return;
+                    }
+                    Some(FrameTransition::AnimationLoopFinished) => {
+                        events.send(AnimationEvents::LoopCycleFinished(entity));
+                    }
+                    None => {}
                 }
 
                 frame.elapsed = std::time::Duration::ZERO;
@@ -281,8 +288,9 @@ fn update_aseprite_animation(
     );
 }
 
-enum NexFrameError {
+enum FrameTransition {
     AnimationFinished,
+    AnimationLoopFinished,
 }
 
 fn next_frame(
@@ -290,7 +298,7 @@ fn next_frame(
     repeat: &mut AnimationRepeat,
     direction: &AnimationDirection,
     animation_range: &Range<usize>,
-) -> Result<(), NexFrameError> {
+) -> Option<FrameTransition> {
     match *direction {
         AnimationDirection::Forward => {
             let next = frame.index + 1;
@@ -298,13 +306,14 @@ fn next_frame(
                 match *repeat {
                     AnimationRepeat::Loop => {
                         frame.index = animation_range.start;
+                        return Some(FrameTransition::AnimationLoopFinished);
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             frame.index = animation_range.start;
                             *repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return Err(NexFrameError::AnimationFinished);
+                            return Some(FrameTransition::AnimationFinished);
                         }
                     }
                 }
@@ -318,13 +327,14 @@ fn next_frame(
                 match *repeat {
                     AnimationRepeat::Loop => {
                         frame.index = animation_range.end - 1;
+                        return Some(FrameTransition::AnimationLoopFinished);
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             frame.index = animation_range.end - 1;
                             *repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return Err(NexFrameError::AnimationFinished);
+                            return Some(FrameTransition::AnimationFinished);
                         }
                     }
                 }
@@ -349,6 +359,7 @@ fn next_frame(
                     AnimationRepeat::Loop => {
                         frame.current_direction = PlayDirection::Backward;
                         frame.index = animation_range.end - 1;
+                        return Some(FrameTransition::AnimationLoopFinished);
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
@@ -356,7 +367,7 @@ fn next_frame(
                             frame.index = animation_range.end - 1;
                             *repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return Err(NexFrameError::AnimationFinished);
+                            return Some(FrameTransition::AnimationFinished);
                         }
                     }
                 };
@@ -365,6 +376,7 @@ fn next_frame(
                     AnimationRepeat::Loop => {
                         frame.current_direction = PlayDirection::Forward;
                         frame.index = animation_range.start;
+                        return Some(FrameTransition::AnimationLoopFinished);
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
@@ -372,7 +384,7 @@ fn next_frame(
                             frame.index = animation_range.start;
                             *repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return Err(NexFrameError::AnimationFinished);
+                            return Some(FrameTransition::AnimationFinished);
                         }
                     }
                 };
@@ -381,5 +393,5 @@ fn next_frame(
             }
         }
     };
-    Ok(())
+    None
 }

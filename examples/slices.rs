@@ -35,3 +35,10 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
         ..Default::default()
     });
 }
+
+
+// fn despawn(mut events : EventReader<AnimationEvent>, mut cmd: Commands) {
+//     for event in events.iter() {
+//
+//     }
+// }
