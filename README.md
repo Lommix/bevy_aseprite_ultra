@@ -36,6 +36,10 @@ cargo run --example animations
 
 ![Example](docs/example.gif)
 
+<small> character animation by [Benjamin](https://github.com/headcr4sh) </small>
+
+---
+
 There are two main Bundles added by this plugin, `AsepriteAnimationBundle` and `AsepriteSliceBundle`.
 
 ```rust
