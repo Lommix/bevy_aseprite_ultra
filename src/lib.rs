@@ -21,4 +21,5 @@ pub mod prelude {
     };
     pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle};
     pub use crate::BevySprityPlugin;
+    pub use crate::loader::Aseprite;
 }
