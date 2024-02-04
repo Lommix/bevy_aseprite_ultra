@@ -1,7 +1,10 @@
 use bevy::{
     asset::{AssetLoader, AsyncReadExt},
     prelude::*,
-    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    render::{
+        render_asset::RenderAssetUsages,
+        render_resource::{Extent3d, TextureDimension, TextureFormat},
+    },
     sprite::Anchor,
     utils::HashMap,
 };
@@ -15,25 +18,26 @@ impl Plugin for AsepriteLoaderPlugin {
         app.register_asset_loader(AsepriteLoader);
         app.add_systems(
             Update,
-            build_atlas.run_if(on_event::<AssetEvent<Aseprite>>()),
+            rebuild_on_reload.run_if(on_event::<AssetEvent<Aseprite>>()),
         );
     }
 }
 
 #[derive(Asset, Default, TypePath, Debug)]
 pub struct Aseprite {
-    pub atlas: Option<Handle<TextureAtlas>>,
     pub slices: HashMap<String, SliceMeta>,
     pub tags: HashMap<String, TagMeta>,
     pub frame_durations: Vec<std::time::Duration>,
-
-    atlas_buffer: Vec<Handle<Image>>,
-    atlas_frame_lookup: Vec<usize>,
+    pub atlas_layout: Handle<TextureAtlasLayout>,
+    pub atlas_image: Handle<Image>,
+    // atlas_buffer: Vec<Handle<Image>>,
+    // atlas_frame_lookup: Vec<usize>,
+    frame_indicies: Vec<usize>,
 }
 
 impl Aseprite {
     pub fn get_atlas_index(&self, frame: usize) -> usize {
-        self.atlas_frame_lookup[frame]
+        self.frame_indicies[frame]
     }
 }
 
@@ -82,13 +86,18 @@ impl AssetLoader for AsepriteLoader {
             let mut bytes = Vec::new();
             reader.read_to_end(&mut bytes).await?;
             let raw = AsepriteFile::load(&bytes)?;
-            let mut atlas_buffer = Vec::new();
+
+            let mut frame_images = Vec::new();
+
+            let mut atlas_builder = TextureAtlasBuilder::default();
+            let mut images = Vec::new();
 
             for (index, _frame) in raw.frames().iter().enumerate() {
                 let (width, height) = raw.size();
                 let mut buffer = vec![0; width as usize * height as usize * 4];
 
                 let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
+
                 let image = Image::new(
                     Extent3d {
                         width: width as u32,
@@ -98,12 +107,35 @@ impl AssetLoader for AsepriteLoader {
                     TextureDimension::D2,
                     buffer.clone(),
                     TextureFormat::Rgba8UnormSrgb,
+                    RenderAssetUsages::default(),
                 );
+                images.push(image);
 
-                let handle =
-                    load_context.add_labeled_asset((format!("frame_{}", index)).into(), image);
-                atlas_buffer.push(handle);
+                // atlas_builder.add_texture(None, &image);
+                //
+                //
+                // frame_images.push(handle.id());
+                // atlas_builder.add_texture(Some(handle.clone().id()), &image);
             }
+
+            for (index, image) in images.iter().enumerate() {
+                let handle = load_context
+                    .add_labeled_asset((format!("frame_{}", index)).into(), image.clone());
+
+                frame_images.push(handle.id());
+                atlas_builder.add_texture(Some(handle.id()), &image);
+            }
+
+            // ----------------------------- atlas
+            let (layout, image) = atlas_builder.finish().unwrap();
+
+            let frame_indicies = frame_images
+                .iter()
+                .map(|id| layout.get_texture_index(*id).unwrap())
+                .collect::<Vec<_>>();
+
+            let atlas_layout = load_context.add_labeled_asset("layout".into(), layout);
+            let atlas_image = load_context.add_labeled_asset("texture".into(), image);
 
             // ----------------------------- slices
             let mut slices = HashMap::new();
@@ -159,11 +191,12 @@ impl AssetLoader for AsepriteLoader {
                 .collect();
 
             Ok(Aseprite {
-                atlas_buffer,
                 slices,
                 tags,
                 frame_durations,
-                ..default()
+                atlas_layout,
+                atlas_image,
+                frame_indicies,
             })
         })
     }
@@ -173,56 +206,21 @@ impl AssetLoader for AsepriteLoader {
     }
 }
 
-#[derive(Component)]
-pub(crate) struct Dirty;
-
-fn build_atlas(
-    enties: Query<(Entity, &Handle<Aseprite>), (With<Handle<Image>>, With<Sprite>)>,
+fn rebuild_on_reload(
+    aseprite_entites: Query<(Entity, &Handle<Aseprite>)>,
+    images: Query<&Handle<Image>>,
     mut events: EventReader<AssetEvent<Aseprite>>,
-    mut images: ResMut<Assets<Image>>,
-    mut atlases: ResMut<Assets<TextureAtlas>>,
-    mut aseprites: ResMut<Assets<Aseprite>>,
     mut cmd: Commands,
 ) {
     events.read().for_each(|event| match event {
-        AssetEvent::Added { id } | AssetEvent::Modified { id } => {
-            let Some(asesprite) = aseprites.get(*id) else {
-                debug!("Aseprite not found, how an this be");
-                return;
-            };
-
-            if asesprite.atlas.is_some() {
-                return;
-            }
-
-            let asesprite = aseprites.get_mut(*id).unwrap();
-
-            let mut atlas = TextureAtlasBuilder::default();
-            let mut frame_handles = vec![];
-
-            asesprite.atlas_buffer.drain(..).for_each(|image_handle| {
-                let image = images
-                    .get_mut(image_handle.clone())
-                    .expect("Image not found, how can this be");
-                atlas.add_texture(image_handle.clone().into(), image);
-                frame_handles.push(image_handle);
-            });
-
-            let atlas = atlas.finish(&mut images).unwrap();
-            asesprite.atlas_frame_lookup = frame_handles
-                .drain(..)
-                .map(|handle| atlas.get_texture_index(handle).unwrap())
-                .collect();
-
-            asesprite.atlas = Some(atlases.add(atlas));
-
-            // @todo, can this be done better?
-            // cleaning up dirty entities
-            enties
+        AssetEvent::LoadedWithDependencies { id } => {
+            aseprite_entites
                 .iter()
                 .filter(|(_, handle)| handle.id() == *id)
                 .for_each(|(entity, _)| {
-                    cmd.entity(entity).remove::<Handle<Image>>();
+                    if images.get(entity).is_ok() {
+                        cmd.entity(entity).remove::<Handle<Image>>();
+                    }
                 });
         }
         _ => {}
