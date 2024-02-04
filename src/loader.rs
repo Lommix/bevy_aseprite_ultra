@@ -6,7 +6,7 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
     sprite::Anchor,
-    utils::HashMap,
+    utils::{HashMap, Uuid},
 };
 
 use sprity::aseprite::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
@@ -30,8 +30,6 @@ pub struct Aseprite {
     pub frame_durations: Vec<std::time::Duration>,
     pub atlas_layout: Handle<TextureAtlasLayout>,
     pub atlas_image: Handle<Image>,
-    // atlas_buffer: Vec<Handle<Image>>,
-    // atlas_frame_lookup: Vec<usize>,
     frame_indicies: Vec<usize>,
 }
 
@@ -88,7 +86,6 @@ impl AssetLoader for AsepriteLoader {
             let raw = AsepriteFile::load(&bytes)?;
 
             let mut frame_images = Vec::new();
-
             let mut atlas_builder = TextureAtlasBuilder::default();
             let mut images = Vec::new();
 
@@ -110,20 +107,15 @@ impl AssetLoader for AsepriteLoader {
                     RenderAssetUsages::default(),
                 );
                 images.push(image);
-
-                // atlas_builder.add_texture(None, &image);
-                //
-                //
-                // frame_images.push(handle.id());
-                // atlas_builder.add_texture(Some(handle.clone().id()), &image);
             }
 
-            for (index, image) in images.iter().enumerate() {
-                let handle = load_context
-                    .add_labeled_asset((format!("frame_{}", index)).into(), image.clone());
+            for image in images.iter() {
+                let handle_id = AssetId::Uuid {
+                    uuid: Uuid::new_v4(),
+                };
 
-                frame_images.push(handle.id());
-                atlas_builder.add_texture(Some(handle.id()), &image);
+                frame_images.push(handle_id);
+                atlas_builder.add_texture(Some(handle_id), &image);
             }
 
             // ----------------------------- atlas
@@ -134,8 +126,8 @@ impl AssetLoader for AsepriteLoader {
                 .map(|id| layout.get_texture_index(*id).unwrap())
                 .collect::<Vec<_>>();
 
-            let atlas_layout = load_context.add_labeled_asset("layout".into(), layout);
-            let atlas_image = load_context.add_labeled_asset("texture".into(), image);
+            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
+            let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
 
             // ----------------------------- slices
             let mut slices = HashMap::new();
@@ -206,6 +198,7 @@ impl AssetLoader for AsepriteLoader {
     }
 }
 
+/// trigger rebuild on aseprite entities when the asset is reloaded
 fn rebuild_on_reload(
     aseprite_entites: Query<(Entity, &Handle<Aseprite>)>,
     images: Query<&Handle<Image>>,
