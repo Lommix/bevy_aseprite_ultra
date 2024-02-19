@@ -18,52 +18,51 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
         ..default()
     });
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite"),
-        animation: Animation::default().with_tag("walk-right"),
-        transform: Transform::from_translation(Vec3::new(15., 0., 0.)),
-        ..default()
-    });
-
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite"),
-        animation: Animation::default()
-            .with_tag("walk-up")
-            .with_speed(0.5),
-        transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-        ..default()
-    });
-
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite"),
-        animation: Animation::default().with_tag("walk-down"),
-        transform: Transform::from_translation(Vec3::new(-15., 0., 0.)),
-        ..default()
-    });
+    // cmd.spawn(AsepriteAnimationBundle {
+    //     aseprite: server.load("player.aseprite"),
+    //     animation: Animation::default().with_tag("walk-right"),
+    //     transform: Transform::from_translation(Vec3::new(15., 0., 0.)),
+    //     ..default()
+    // });
+    //
+    // cmd.spawn(AsepriteAnimationBundle {
+    //     aseprite: server.load("player.aseprite"),
+    //     animation: Animation::default().with_tag("walk-up").with_speed(0.5),
+    //     transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
+    //     ..default()
+    // });
+    //
+    // cmd.spawn(AsepriteAnimationBundle {
+    //     aseprite: server.load("player.aseprite"),
+    //     animation: Animation::default().with_tag("walk-down"),
+    //     transform: Transform::from_translation(Vec3::new(-15., 0., 0.)),
+    //     ..default()
+    // });
 
     cmd.spawn(AsepriteAnimationBundle {
         aseprite: server.load("player.aseprite"),
         transform: Transform::from_translation(Vec3::new(0., -20., 0.)),
+        animation: Animation::default().with_direction(AnimationDirection::Reverse),
         ..default()
     });
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite"),
-        transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        animation: Animation::default().with_tag("walk-right"),
-        sprite: Sprite {
-            flip_x: true,
-            ..default()
-        },
-        ..default()
-    });
-
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("ball.aseprite"),
-        animation: Animation::default().with_tag("squash"),
-        transform: Transform::from_translation(Vec3::new(0., 20., 0.)),
-        ..default()
-    });
+    // cmd.spawn(AsepriteAnimationBundle {
+    //     aseprite: server.load("player.aseprite"),
+    //     transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
+    //     animation: Animation::default().with_tag("walk-right"),
+    //     sprite: Sprite {
+    //         flip_x: true,
+    //         ..default()
+    //     },
+    //     ..default()
+    // });
+    //
+    // cmd.spawn(AsepriteAnimationBundle {
+    //     aseprite: server.load("ball.aseprite"),
+    //     animation: Animation::default().with_tag("squash"),
+    //     transform: Transform::from_translation(Vec3::new(0., 20., 0.)),
+    //     ..default()
+    // });
 
     cmd.spawn(AsepriteSliceBundle {
         slice: "ghost_red".into(),

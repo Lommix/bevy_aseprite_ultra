@@ -198,11 +198,6 @@ fn insert_aseprite_animation(
                     .unwrap_or(aseprite.frame_durations.len() as u16 - 1),
             );
 
-            // let (start_index, end_index) = match control.tag {
-            //     Some(tag) => {}
-            //     None => (0, aseprite.frame_durations.len() - 1),
-            // };
-
             state.current_frame = start_frame_index;
             state.elapsed = std::time::Duration::ZERO;
             control.playing = true;
@@ -216,6 +211,13 @@ fn insert_aseprite_animation(
                         PlayDirection::Backward
                     }
                     _ => PlayDirection::Forward,
+                };
+            } else {
+                match control.direction {
+                    AnimationDirection::Reverse | AnimationDirection::PingPongReverse => {
+                        state.current_frame = end_frame_index;
+                    }
+                    _ => (),
                 };
             }
 
@@ -240,7 +242,6 @@ fn update_aseprite_animation(
     )>,
     mut events: EventWriter<AnimationEvents>,
     asesprites: Res<Assets<Aseprite>>,
-    atlases: Res<Assets<TextureAtlasLayout>>,
     time: Res<Time>,
 ) {
     query.iter_mut().for_each(
@@ -250,10 +251,6 @@ fn update_aseprite_animation(
             }
 
             let Some(aseprite) = asesprites.get(aseprite_handle) else {
-                return;
-            };
-
-            let Some(atlas) = atlases.get(&aseprite.atlas_layout) else {
                 return;
             };
 
@@ -278,7 +275,7 @@ fn update_aseprite_animation(
             if state.elapsed > *frame_time {
                 match next_frame(&mut state, &mut control, &animation_range) {
                     Some(FrameTransition::AnimationFinished) => {
-                        // mut just because of this?
+                        // mut just because of this? @fix someday
                         control.playing = false;
                         events.send(AnimationEvents::Finished(entity));
                         return;
