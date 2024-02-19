@@ -61,7 +61,7 @@ fn insert_aseprite_slice(
         Without<Handle<Image>>,
     >,
     aseprites: Res<Assets<Aseprite>>,
-    atlases: Res<Assets<TextureAtlas>>,
+    atlases: Res<Assets<TextureAtlasLayout>>,
 ) {
     query
         .iter_mut()
@@ -70,11 +70,7 @@ fn insert_aseprite_slice(
                 return;
             };
 
-            let Some(atlas_handle) = &aseprite.atlas else {
-                return;
-            };
-
-            let Some(atlas) = atlases.get(atlas_handle) else {
+            let Some(atlas) = atlases.get(&aseprite.atlas_layout) else {
                 return;
             };
 
@@ -86,6 +82,6 @@ fn insert_aseprite_slice(
             sprite.rect = Some(slice_meta.rect);
             sprite.anchor = Anchor::from(slice_meta);
 
-            cmd.entity(entity).insert(atlas.texture.clone());
+            cmd.entity(entity).insert(aseprite.atlas_image.clone());
         });
 }

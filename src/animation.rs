@@ -46,11 +46,11 @@ pub struct AsepriteAnimationBundle {
 
 #[derive(Component)]
 pub struct Animation {
-    tag: Option<String>,
-    speed: f32,
-    playing: bool,
-    repeat: AnimationRepeat,
-    direction: AnimationDirection,
+    pub tag: Option<String>,
+    pub speed: f32,
+    pub playing: bool,
+    pub repeat: AnimationRepeat,
+    pub direction: AnimationDirection,
 }
 
 impl Default for Animation {
@@ -161,7 +161,6 @@ fn insert_aseprite_animation(
     mut query: Query<
         (
             Entity,
-            &mut Sprite,
             &mut AnimationState,
             &mut Animation,
             &Handle<Aseprite>,
@@ -170,19 +169,11 @@ fn insert_aseprite_animation(
     >,
     mut cmd: Commands,
     asesprites: Res<Assets<Aseprite>>,
-    atlases: Res<Assets<TextureAtlas>>,
 ) {
-    query.iter_mut().for_each(
-        |(entity, mut sprite, mut state, mut control, aseprite_handle)| {
+    query
+        .iter_mut()
+        .for_each(|(entity, mut state, mut control, aseprite_handle)| {
             let Some(aseprite) = asesprites.get(aseprite_handle) else {
-                return;
-            };
-
-            let Some(atlas_handle) = aseprite.atlas.as_ref() else {
-                return;
-            };
-
-            let Some(atlas) = atlases.get(atlas_handle) else {
                 return;
             };
 
@@ -207,16 +198,9 @@ fn insert_aseprite_animation(
                     .unwrap_or(aseprite.frame_durations.len() as u16 - 1),
             );
 
-            // let (start_index, end_index) = match control.tag {
-            //     Some(tag) => {}
-            //     None => (0, aseprite.frame_durations.len() - 1),
-            // };
-
             state.current_frame = start_frame_index;
             state.elapsed = std::time::Duration::ZERO;
             control.playing = true;
-
-            cmd.entity(entity).insert(atlas.texture.clone());
 
             if let Some(tag) = maybe_tag {
                 control.repeat = AnimationRepeat::from(tag.repeat);
@@ -228,42 +212,45 @@ fn insert_aseprite_animation(
                     }
                     _ => PlayDirection::Forward,
                 };
+            } else {
+                match control.direction {
+                    AnimationDirection::Reverse | AnimationDirection::PingPongReverse => {
+                        state.current_frame = end_frame_index;
+                    }
+                    _ => (),
+                };
             }
 
             let atlas_frame_index = aseprite.get_atlas_index(state.current_frame);
-            sprite.rect = Some(atlas.textures[atlas_frame_index]);
-        },
-    );
+
+            cmd.entity(entity)
+                .insert(TextureAtlas {
+                    layout: aseprite.atlas_layout.clone(),
+                    index: atlas_frame_index,
+                })
+                .insert(aseprite.atlas_image.clone());
+        });
 }
 
 fn update_aseprite_animation(
     mut query: Query<(
         Entity,
         &mut AnimationState,
-        &mut Sprite,
+        &mut TextureAtlas,
         &mut Animation,
         &Handle<Aseprite>,
     )>,
     mut events: EventWriter<AnimationEvents>,
     asesprites: Res<Assets<Aseprite>>,
-    atlases: Res<Assets<TextureAtlas>>,
     time: Res<Time>,
 ) {
     query.iter_mut().for_each(
-        |(entity, mut state, mut sprite, mut control, aseprite_handle)| {
+        |(entity, mut state, mut atlas_comp, mut control, aseprite_handle)| {
             if !control.playing {
                 return;
             }
 
             let Some(aseprite) = asesprites.get(aseprite_handle) else {
-                return;
-            };
-
-            let Some(atlas_handle) = aseprite.atlas.as_ref() else {
-                return;
-            };
-
-            let Some(atlas) = atlases.get(atlas_handle) else {
                 return;
             };
 
@@ -283,12 +270,12 @@ fn update_aseprite_animation(
             };
 
             let atlas_frame_index = aseprite.get_atlas_index(state.current_frame);
-            sprite.rect = Some(atlas.textures[atlas_frame_index]);
+            atlas_comp.index = atlas_frame_index;
 
             if state.elapsed > *frame_time {
                 match next_frame(&mut state, &mut control, &animation_range) {
                     Some(FrameTransition::AnimationFinished) => {
-                        // mut just because of this?
+                        // mut just because of this? @fix someday
                         control.playing = false;
                         events.send(AnimationEvents::Finished(entity));
                         return;

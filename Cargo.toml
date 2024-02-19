@@ -8,15 +8,23 @@ keywords = ["bevy", "aseprite", "atlas", "loader", "animation"]
 repository = "https://github.com/Lommix/bevy_aseprite_ultra.git"
 license = "MIT"
 
-[dependencies.bevy]
-version = "0.12.1"
-default-features = true
-features = ["bevy_render", "bevy_asset", "bevy_sprite", "wayland"]
-
-[dev-dependencies.bevy]
-default-features = false
-features = ["file_watcher", "multi-threaded"]
-
 [dependencies]
+bevy = { version="0.13" , default-features=false, features=[
+	"wayland",
+	"bevy_sprite",
+	"bevy_asset",
+	"multi-threaded",
+	"file_watcher"
+]}
+
 anyhow = "1.0.75"
 sprity = { git = "https://github.com/Lommix/sprity.git", branch = "main" }
+#sprity = { path = "../sprity"}
+
+
+[featues]
+dev = [
+	"bevy/multi-threaded",
+	"bevy/wayland",
+	"bevy/file_watcher",
+]
