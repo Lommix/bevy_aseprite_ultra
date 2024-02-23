@@ -82,6 +82,8 @@ fn insert_aseprite_slice(
             sprite.rect = Some(slice_meta.rect);
             sprite.anchor = Anchor::from(slice_meta);
 
-            cmd.entity(entity).insert(aseprite.atlas_image.clone());
+            if let Some(mut cmd) = cmd.get_entity(entity) {
+                cmd.insert(aseprite.atlas_image.clone());
+            };
         });
 }

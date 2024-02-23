@@ -223,12 +223,13 @@ fn insert_aseprite_animation(
 
             let atlas_frame_index = aseprite.get_atlas_index(state.current_frame);
 
-            cmd.entity(entity)
-                .insert(TextureAtlas {
+            if let Some(mut cmd) = cmd.get_entity(entity) {
+                cmd.insert(TextureAtlas {
                     layout: aseprite.atlas_layout.clone(),
                     index: atlas_frame_index,
                 })
                 .insert(aseprite.atlas_image.clone());
+            };
         });
 }
 

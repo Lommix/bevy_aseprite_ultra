@@ -212,7 +212,9 @@ fn rebuild_on_reload(
                 .filter(|(_, handle)| handle.id() == *id)
                 .for_each(|(entity, _)| {
                     if images.get(entity).is_ok() {
-                        cmd.entity(entity).remove::<Handle<Image>>();
+                        if let Some(mut cmd) = cmd.get_entity(entity) {
+                            cmd.remove::<Handle<Image>>();
+                        }
                     }
                 });
         }

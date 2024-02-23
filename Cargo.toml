@@ -10,19 +10,14 @@ license = "MIT"
 
 [dependencies]
 bevy = { version="0.13" , default-features=false, features=[
-	"wayland",
 	"bevy_sprite",
 	"bevy_asset",
-	"multi-threaded",
-	"file_watcher"
 ]}
-
 anyhow = "1.0.75"
 sprity = { git = "https://github.com/Lommix/sprity.git", branch = "main" }
 #sprity = { path = "../sprity"}
 
-
-[featues]
+[features]
 dev = [
 	"bevy/multi-threaded",
 	"bevy/wayland",
