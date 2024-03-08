@@ -49,6 +49,7 @@ pub struct TagMeta {
 #[derive(Debug)]
 pub struct SliceMeta {
     pub rect: Rect,
+    pub atlas_id: usize,
     pub pivot: Option<Vec2>,
     pub nine_patch: Option<Vec4>,
 }
@@ -119,15 +120,12 @@ impl AssetLoader for AsepriteLoader {
             }
 
             // ----------------------------- atlas
-            let (layout, image) = atlas_builder.finish().unwrap();
+            let (mut layout, image) = atlas_builder.finish().unwrap();
 
             let frame_indicies = frame_images
                 .iter()
                 .map(|id| layout.get_texture_index(*id).unwrap())
                 .collect::<Vec<_>>();
-
-            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
-            let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
 
             // ----------------------------- slices
             let mut slices = HashMap::new();
@@ -152,15 +150,21 @@ impl AssetLoader for AsepriteLoader {
                     None => None,
                 };
 
+                let layout_id = layout.add_texture(Rect::from_corners(min, max));
+
                 slices.insert(
                     slice.name.into(),
                     SliceMeta {
                         rect: Rect::from_corners(min, max),
+                        atlas_id: layout_id,
                         pivot,
                         nine_patch,
                     },
                 );
             });
+
+            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
+            let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
 
             // ---------------------------- tags
             let mut tags = HashMap::new();
@@ -201,7 +205,6 @@ impl AssetLoader for AsepriteLoader {
 /// trigger rebuild on aseprite entities when the asset is reloaded
 fn rebuild_on_reload(
     aseprite_entites: Query<(Entity, &Handle<Aseprite>)>,
-    images: Query<&Handle<Image>>,
     mut events: EventReader<AssetEvent<Aseprite>>,
     mut cmd: Commands,
 ) {
@@ -211,10 +214,8 @@ fn rebuild_on_reload(
                 .iter()
                 .filter(|(_, handle)| handle.id() == *id)
                 .for_each(|(entity, _)| {
-                    if images.get(entity).is_ok() {
-                        if let Some(mut cmd) = cmd.get_entity(entity) {
-                            cmd.remove::<Handle<Image>>();
-                        }
+                    if let Some(mut cmd) = cmd.get_entity(entity) {
+                        cmd.remove::<UiImage>().remove::<Handle<Image>>();
                     }
                 });
         }

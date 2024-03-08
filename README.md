@@ -5,9 +5,11 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
-|       0.13 |          0.1.0 |
+|         0.13 |          0.1.0 |
 
-_lower versions of bevy are not supported_
+** The plugin is currently being battle tested and is not released yet **
+
+I use it in my game, check it out on my [blog](https://lommix.com)
 
 ## Supported aseprite features
 
@@ -99,4 +101,40 @@ fn despawn_on_finish(mut cmd : Commands){
         };
     }
 }
+```
+
+## Bevy Ui
+
+There is also an Ui Bundle for Bevy Ui Nodes!
+
+```rust
+// animations in bevy ui
+cmd.spawn((
+        ButtonBundle{
+            // node config
+            ..default()
+        },
+        AsepriteAnimationUiBundle{
+            aseprite: server.load("yourfile.aseprite"),
+            animation: Animation{
+                tag : Some("idle".to_string()),
+                ..default()
+            },
+            ..default()
+        },
+));
+
+// slices in bevy ui
+cmd.spawn((
+        ImageBundle{
+            // node config
+            ..default()
+        },
+        AsepriteSliceUiBundle{
+            aseprite: server.load("yourfile.aseprite"),
+            slice: AsepriteSlice::from("your_slice"),
+            ..default()
+        },
+));
+
 ```

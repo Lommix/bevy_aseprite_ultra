@@ -44,6 +44,13 @@ pub struct AsepriteAnimationBundle {
     pub view_visibility: ViewVisibility,
 }
 
+#[derive(Bundle, Default)]
+pub struct AsepriteAnimationUiBundle {
+    pub aseprite: Handle<Aseprite>,
+    pub animation: Animation,
+    pub animation_state: AnimationState,
+}
+
 #[derive(Component)]
 pub struct Animation {
     pub tag: Option<String>,
@@ -165,8 +172,12 @@ fn insert_aseprite_animation(
             &mut Animation,
             &Handle<Aseprite>,
         ),
-        Without<Handle<Image>>,
+        Added<Handle<Aseprite>>,
     >,
+
+    sprites: Query<(), With<Sprite>>,
+    ui_nodes: Query<(), With<Node>>,
+
     mut cmd: Commands,
     asesprites: Res<Assets<Aseprite>>,
 ) {
@@ -227,8 +238,15 @@ fn insert_aseprite_animation(
                 cmd.insert(TextureAtlas {
                     layout: aseprite.atlas_layout.clone(),
                     index: atlas_frame_index,
-                })
-                .insert(aseprite.atlas_image.clone());
+                });
+
+                if sprites.get(entity).is_ok() {
+                    cmd.insert(aseprite.atlas_image.clone());
+                }
+
+                if ui_nodes.get(entity).is_ok() {
+                    cmd.insert(UiImage::new(aseprite.atlas_image.clone()));
+                }
             };
         });
 }

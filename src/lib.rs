@@ -16,10 +16,10 @@ impl Plugin for BevySprityPlugin {
 
 pub mod prelude {
     pub use crate::animation::{
-        Animation, AnimationDirection, AnimationEvents, AnimationRepeat,
-        AsepriteAnimationBundle,
+        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AsepriteAnimationBundle,
+        AsepriteAnimationUiBundle,
     };
-    pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle};
-    pub use crate::BevySprityPlugin;
     pub use crate::loader::Aseprite;
+    pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle, AsepriteSliceUiBundle};
+    pub use crate::BevySprityPlugin;
 }

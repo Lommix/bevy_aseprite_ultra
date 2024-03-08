@@ -4,7 +4,7 @@ use bevy::{prelude::*, sprite::Anchor};
 pub struct AsepriteSlicePlugin;
 impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, insert_aseprite_slice);
+        app.add_systems(Update, (insert_aseprite_slice, insert_ui_aseprite_slice));
     }
 }
 
@@ -30,11 +30,20 @@ pub struct AsepriteSliceBundle {
     pub slice: AsepriteSlice,
     pub aseprite: Handle<Aseprite>,
     pub sprite: Sprite,
+    pub atlas: TextureAtlas,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
+}
+
+#[derive(Bundle, Default)]
+pub struct AsepriteSliceUiBundle {
+    pub slice: AsepriteSlice,
+    pub aseprite: Handle<Aseprite>,
+    pub sprite: Sprite,
+    pub atlas: TextureAtlas,
 }
 
 /// The `AsepriteSlice` component is used to specify which slice of an aseprite should be rendered.
@@ -57,20 +66,21 @@ impl From<&str> for AsepriteSlice {
 fn insert_aseprite_slice(
     mut cmd: Commands,
     mut query: Query<
-        (Entity, &mut Sprite, &AsepriteSlice, &Handle<Aseprite>),
+        (
+            Entity,
+            &mut TextureAtlas,
+            &mut Sprite,
+            &AsepriteSlice,
+            &Handle<Aseprite>,
+        ),
         Without<Handle<Image>>,
     >,
     aseprites: Res<Assets<Aseprite>>,
-    atlases: Res<Assets<TextureAtlasLayout>>,
 ) {
     query
         .iter_mut()
-        .for_each(|(entity, mut sprite, slice, handle)| {
+        .for_each(|(entity, mut atlas, mut sprite, slice, handle)| {
             let Some(aseprite) = aseprites.get(handle) else {
-                return;
-            };
-
-            let Some(atlas) = atlases.get(&aseprite.atlas_layout) else {
                 return;
             };
 
@@ -79,11 +89,40 @@ fn insert_aseprite_slice(
                 .get(&slice.0)
                 .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
 
-            sprite.rect = Some(slice_meta.rect);
             sprite.anchor = Anchor::from(slice_meta);
+
+            atlas.layout = aseprite.atlas_layout.clone();
+            atlas.index = slice_meta.atlas_id;
 
             if let Some(mut cmd) = cmd.get_entity(entity) {
                 cmd.insert(aseprite.atlas_image.clone());
             };
         });
+}
+
+fn insert_ui_aseprite_slice(
+    mut cmd: Commands,
+    mut query: Query<(Entity, &AsepriteSlice, &Handle<Aseprite>), (Without<UiImage>, With<Node>)>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    query.iter_mut().for_each(|(entity, slice, handle)| {
+        let Some(aseprite) = aseprites.get(handle) else {
+            return;
+        };
+
+        let slice_meta = aseprite
+            .slices
+            .get(&slice.0)
+            .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
+
+        if let Some(mut cmd) = cmd.get_entity(entity) {
+            cmd.insert((
+                UiImage::new(aseprite.atlas_image.clone()),
+                TextureAtlas {
+                    layout: aseprite.atlas_layout.clone(),
+                    index: slice_meta.atlas_id,
+                },
+            ));
+        };
+    });
 }
