@@ -42,9 +42,13 @@ pub struct AsepriteSliceBundle {
 pub struct AsepriteSliceUiBundle {
     pub slice: AsepriteSlice,
     pub aseprite: Handle<Aseprite>,
-    pub sprite: Sprite,
     pub atlas: TextureAtlas,
+    pub unloaded: Unloaded,
 }
+
+/// tags a ui aseprite image as not yet loaded
+#[derive(Component, Default)]
+pub struct Unloaded;
 
 /// The `AsepriteSlice` component is used to specify which slice of an aseprite should be rendered.
 /// If the slice is not found in the aseprite file, the game will panic.
@@ -102,7 +106,7 @@ fn insert_aseprite_slice(
 
 fn insert_ui_aseprite_slice(
     mut cmd: Commands,
-    mut query: Query<(Entity, &AsepriteSlice, &Handle<Aseprite>), (Without<UiImage>, With<Node>)>,
+    mut query: Query<(Entity, &AsepriteSlice, &Handle<Aseprite>), (With<Unloaded>, With<Node>)>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     query.iter_mut().for_each(|(entity, slice, handle)| {
@@ -116,7 +120,7 @@ fn insert_ui_aseprite_slice(
             .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
 
         if let Some(mut cmd) = cmd.get_entity(entity) {
-            cmd.insert((
+            cmd.remove::<Unloaded>().insert((
                 UiImage::new(aseprite.atlas_image.clone()),
                 TextureAtlas {
                     layout: aseprite.atlas_layout.clone(),

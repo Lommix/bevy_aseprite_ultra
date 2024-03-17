@@ -7,7 +7,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 | -----------: | -------------: |
 |         0.13 |          0.1.0 |
 
-** The plugin is currently being battle tested and is not released yet **
+**The plugin is currently being battle tested and is not released yet**
 
 I use it in my game, check it out on my [blog](https://lommix.com)
 
@@ -58,11 +58,14 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
         animation: Animation::default()
                 .with_tag("walk-right")
                 .with_speed(2.),
-                // These options can be manipulated at runtime, but if a tag
-                // is provided, they are overwritten from the aseprite animation
-                // setting at first load
-                .with_direction(AnimationDirection::PingPong),
+                // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
                 .with_repeat(AnimationRepeat::Count(42)),
+                // The direction is provided by the asperite config for the tag, but can be overwritten
+                // after the animation is loaded.
+                .with_direction(AnimationDirection::PingPong),
+                // you can also chain finite animations, loop animations with never finish
+                .with_then("walk-left", AnimationRepeat::Count(4))
+                .with_then("walk-up", AnimationRepeat::Loop)
         // you can override the default sprite settings here
         sprite: Sprite {
             flip_x: true,

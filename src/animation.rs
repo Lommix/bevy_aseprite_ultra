@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{collections::VecDeque, ops::Range};
 
 use crate::loader::Aseprite;
 use bevy::prelude::*;
@@ -58,6 +58,7 @@ pub struct Animation {
     pub playing: bool,
     pub repeat: AnimationRepeat,
     pub direction: AnimationDirection,
+    pub queue: VecDeque<(String, AnimationRepeat)>,
 }
 
 impl Default for Animation {
@@ -68,26 +69,50 @@ impl Default for Animation {
             playing: false,
             repeat: AnimationRepeat::Loop,
             direction: AnimationDirection::Forward,
+            queue: VecDeque::new(),
         }
     }
 }
 
 impl Animation {
+    /// animation speed multiplier, default is 1.0
     pub fn with_speed(mut self, speed: f32) -> Self {
         self.speed = speed;
         self
     }
+
+    /// provide a tag string. Panics at runtime, if animation is not found
     pub fn with_tag(mut self, tag: &str) -> Self {
         self.tag = Some(tag.to_string());
         self
     }
+
+    /// sets a repeat count, defaults is loop
     pub fn with_repeat(mut self, repeat: AnimationRepeat) -> Self {
         self.repeat = repeat;
         self
     }
+
+    /// provides an animation direction, maybe overwritten by aseprite tag
     pub fn with_direction(mut self, direction: AnimationDirection) -> Self {
         self.direction = direction;
         self
+    }
+
+    /// chains an animation after the current one is done
+    pub fn with_then(mut self, tag: &str, repeats: AnimationRepeat) -> Self {
+        self.queue.push_back((tag.to_string(), repeats));
+        self
+    }
+
+    /// chains an animation after the current one is done
+    pub fn then(&mut self, tag: &str, repeats: AnimationRepeat) {
+        self.queue.push_back((tag.to_string(), repeats));
+    }
+
+    /// clears any queued up animations
+    pub fn clear_queue(&mut self) {
+        self.queue.clear()
     }
 }
 
@@ -214,7 +239,6 @@ fn insert_aseprite_animation(
             control.playing = true;
 
             if let Some(tag) = maybe_tag {
-                control.repeat = AnimationRepeat::from(tag.repeat);
                 control.direction = AnimationDirection::from(tag.direction);
                 state.current_direction = match control.direction {
                     AnimationDirection::Reverse | AnimationDirection::PingPongReverse => {
@@ -264,8 +288,8 @@ fn update_aseprite_animation(
     time: Res<Time>,
 ) {
     query.iter_mut().for_each(
-        |(entity, mut state, mut atlas_comp, mut control, aseprite_handle)| {
-            if !control.playing {
+        |(entity, mut state, mut atlas_comp, mut animation, aseprite_handle)| {
+            if !animation.playing {
                 return;
             }
 
@@ -273,7 +297,7 @@ fn update_aseprite_animation(
                 return;
             };
 
-            let animation_range = match control.tag.as_ref() {
+            let animation_range = match animation.tag.as_ref() {
                 Some(tag) => {
                     let r = &aseprite.tags.get(tag).as_ref().unwrap().range;
                     usize::from(r.start)..usize::from(r.end)
@@ -282,7 +306,7 @@ fn update_aseprite_animation(
             };
 
             state.elapsed +=
-                std::time::Duration::from_secs_f32(time.delta_seconds() * control.speed);
+                std::time::Duration::from_secs_f32(time.delta_seconds() * animation.speed);
 
             let Some(frame_time) = aseprite.frame_durations.get(state.current_frame) else {
                 return;
@@ -292,11 +316,19 @@ fn update_aseprite_animation(
             atlas_comp.index = atlas_frame_index;
 
             if state.elapsed > *frame_time {
-                match next_frame(&mut state, &mut control, &animation_range) {
+                match next_frame(&mut state, &mut animation, &animation_range) {
                     Some(FrameTransition::AnimationFinished) => {
                         // mut just because of this? @fix someday
-                        control.playing = false;
-                        events.send(AnimationEvents::Finished(entity));
+                        match animation.queue.pop_front() {
+                            Some((tag, repeat)) => {
+                                animation.tag = Some(tag);
+                                animation.repeat = repeat;
+                            }
+                            None => {
+                                animation.playing = false;
+                                events.send(AnimationEvents::Finished(entity));
+                            }
+                        }
                         return;
                     }
                     Some(FrameTransition::AnimationLoopFinished) => {
