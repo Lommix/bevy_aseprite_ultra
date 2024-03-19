@@ -1,10 +1,11 @@
-use crate::loader::Aseprite;
+use crate::{loader::Aseprite, NotLoaded, UiTag};
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
 impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (insert_aseprite_slice, insert_ui_aseprite_slice));
+        app.add_systems(Update, insert_aseprite_slice);
+        app.register_type::<AsepriteSlice>();
     }
 }
 
@@ -36,23 +37,24 @@ pub struct AsepriteSliceBundle {
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
+    pub not_loaded: NotLoaded,
 }
 
+/// The `AsepriteSliceUiBundle` bundles the components needed to render a slice of an aseprite in
+/// bevy ui. This is intended to be used for static Sprite Atlases.
+/// This bundle can be added to any ui node, that contains an `UiImage`
 #[derive(Bundle, Default)]
 pub struct AsepriteSliceUiBundle {
     pub slice: AsepriteSlice,
     pub aseprite: Handle<Aseprite>,
     pub atlas: TextureAtlas,
-    pub unloaded: Unloaded,
+    pub not_loaded: NotLoaded,
+    pub ui_tag: UiTag,
 }
-
-/// tags a ui aseprite image as not yet loaded
-#[derive(Component, Default)]
-pub struct Unloaded;
 
 /// The `AsepriteSlice` component is used to specify which slice of an aseprite should be rendered.
 /// If the slice is not found in the aseprite file, the game will panic.
-#[derive(Component, Default)]
+#[derive(Component, Default, Reflect)]
 pub struct AsepriteSlice(String);
 
 impl AsepriteSlice {
@@ -73,17 +75,18 @@ fn insert_aseprite_slice(
         (
             Entity,
             &mut TextureAtlas,
-            &mut Sprite,
             &AsepriteSlice,
             &Handle<Aseprite>,
+            Option<&UiTag>,
         ),
-        Without<Handle<Image>>,
+        With<NotLoaded>,
     >,
+    mut sprites: Query<&mut Sprite>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     query
         .iter_mut()
-        .for_each(|(entity, mut atlas, mut sprite, slice, handle)| {
+        .for_each(|(entity, mut atlas, slice, handle, maybe_ui)| {
             let Some(aseprite) = aseprites.get(handle) else {
                 return;
             };
@@ -93,40 +96,23 @@ fn insert_aseprite_slice(
                 .get(&slice.0)
                 .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
 
-            sprite.anchor = Anchor::from(slice_meta);
-
             atlas.layout = aseprite.atlas_layout.clone();
             atlas.index = slice_meta.atlas_id;
 
             if let Some(mut cmd) = cmd.get_entity(entity) {
-                cmd.insert(aseprite.atlas_image.clone());
+                match maybe_ui {
+                    Some(_) => {
+                        cmd.remove::<NotLoaded>()
+                            .insert((UiImage::new(aseprite.atlas_image.clone()),));
+                    }
+                    None => {
+                        if let Ok(mut sprite) = sprites.get_mut(entity) {
+                            sprite.anchor = Anchor::from(slice_meta);
+                        }
+                        cmd.remove::<NotLoaded>()
+                            .insert(aseprite.atlas_image.clone());
+                    }
+                }
             };
         });
-}
-
-fn insert_ui_aseprite_slice(
-    mut cmd: Commands,
-    mut query: Query<(Entity, &AsepriteSlice, &Handle<Aseprite>), (With<Unloaded>, With<Node>)>,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    query.iter_mut().for_each(|(entity, slice, handle)| {
-        let Some(aseprite) = aseprites.get(handle) else {
-            return;
-        };
-
-        let slice_meta = aseprite
-            .slices
-            .get(&slice.0)
-            .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
-
-        if let Some(mut cmd) = cmd.get_entity(entity) {
-            cmd.remove::<Unloaded>().insert((
-                UiImage::new(aseprite.atlas_image.clone()),
-                TextureAtlas {
-                    layout: aseprite.atlas_layout.clone(),
-                    index: slice_meta.atlas_id,
-                },
-            ));
-        };
-    });
 }

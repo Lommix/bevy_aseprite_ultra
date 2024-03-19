@@ -23,3 +23,11 @@ pub mod prelude {
     pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle, AsepriteSliceUiBundle};
     pub use crate::BevySprityPlugin;
 }
+
+/// tags a bundle as ui node
+#[derive(Component, Default)]
+pub struct UiTag;
+
+/// tags an entity as not yet loaded;
+#[derive(Component, Default)]
+pub struct NotLoaded;

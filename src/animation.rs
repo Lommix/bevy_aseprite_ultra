@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, ops::Range};
 
-use crate::loader::Aseprite;
+use crate::{loader::Aseprite, NotLoaded, UiTag};
 use bevy::prelude::*;
 use sprity::aseprite::binary::chunks::tags::AnimationDirection as RawDirection;
 
@@ -12,6 +12,9 @@ impl Plugin for AsepriteAnimationPlugin {
             Update,
             (insert_aseprite_animation, update_aseprite_animation).chain(),
         );
+
+        app.register_type::<Animation>();
+        app.register_type::<AnimationState>();
     }
 }
 
@@ -37,11 +40,13 @@ pub struct AsepriteAnimationBundle {
     pub animation: Animation,
     pub animation_state: AnimationState,
     pub sprite: Sprite,
+    pub atlas: TextureAtlas,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
+    pub not_loaded: NotLoaded,
 }
 
 #[derive(Bundle, Default)]
@@ -49,9 +54,12 @@ pub struct AsepriteAnimationUiBundle {
     pub aseprite: Handle<Aseprite>,
     pub animation: Animation,
     pub animation_state: AnimationState,
+    pub atlas: TextureAtlas,
+    pub ui_tag: UiTag,
+    pub not_loaded: NotLoaded,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Animation {
     pub tag: Option<String>,
     pub speed: f32,
@@ -126,7 +134,7 @@ impl From<&str> for Animation {
     }
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Reflect)]
 pub struct AnimationState {
     current_frame: usize,
     elapsed: std::time::Duration,
@@ -139,20 +147,20 @@ impl AnimationState {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 enum PlayDirection {
     #[default]
     Forward,
     Backward,
 }
 
-#[derive(Event, Debug)]
+#[derive(Event, Debug, Reflect)]
 pub enum AnimationEvents {
     Finished(Entity),
     LoopCycleFinished(Entity),
 }
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub enum AnimationDirection {
     #[default]
     Forward,
@@ -173,7 +181,7 @@ impl From<RawDirection> for AnimationDirection {
     }
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Reflect)]
 pub enum AnimationRepeat {
     #[default]
     Loop,
@@ -195,20 +203,17 @@ fn insert_aseprite_animation(
             Entity,
             &mut AnimationState,
             &mut Animation,
+            &mut TextureAtlas,
             &Handle<Aseprite>,
+            Option<&UiTag>,
         ),
-        Added<Handle<Aseprite>>,
+        With<NotLoaded>,
     >,
-
-    sprites: Query<(), With<Sprite>>,
-    ui_nodes: Query<(), With<Node>>,
-
     mut cmd: Commands,
     asesprites: Res<Assets<Aseprite>>,
 ) {
-    query
-        .iter_mut()
-        .for_each(|(entity, mut state, mut control, aseprite_handle)| {
+    query.iter_mut().for_each(
+        |(entity, mut state, mut control, mut atlas, aseprite_handle, maybe_ui)| {
             let Some(aseprite) = asesprites.get(aseprite_handle) else {
                 return;
             };
@@ -256,23 +261,23 @@ fn insert_aseprite_animation(
                 };
             }
 
-            let atlas_frame_index = aseprite.get_atlas_index(state.current_frame);
+            atlas.layout = aseprite.atlas_layout.clone();
+            atlas.index = aseprite.get_atlas_index(state.current_frame);
 
             if let Some(mut cmd) = cmd.get_entity(entity) {
-                cmd.insert(TextureAtlas {
-                    layout: aseprite.atlas_layout.clone(),
-                    index: atlas_frame_index,
-                });
-
-                if sprites.get(entity).is_ok() {
-                    cmd.insert(aseprite.atlas_image.clone());
-                }
-
-                if ui_nodes.get(entity).is_ok() {
-                    cmd.insert(UiImage::new(aseprite.atlas_image.clone()));
-                }
+                match maybe_ui {
+                    Some(_) => {
+                        cmd.remove::<NotLoaded>()
+                            .insert(UiImage::new(aseprite.atlas_image.clone()));
+                    }
+                    None => {
+                        cmd.remove::<NotLoaded>()
+                            .insert(aseprite.atlas_image.clone());
+                    }
+                };
             };
-        });
+        },
+    );
 }
 
 fn update_aseprite_animation(

@@ -8,8 +8,9 @@ use bevy::{
     sprite::Anchor,
     utils::{HashMap, Uuid},
 };
-
 use sprity::aseprite::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
+
+use crate::NotLoaded;
 
 pub struct AsepriteLoaderPlugin;
 impl Plugin for AsepriteLoaderPlugin {
@@ -204,7 +205,7 @@ impl AssetLoader for AsepriteLoader {
 
 /// trigger rebuild on aseprite entities when the asset is reloaded
 fn rebuild_on_reload(
-    aseprite_entites: Query<(Entity, &Handle<Aseprite>)>,
+    aseprite_entites: Query<(Entity, &Handle<Aseprite>), Without<NotLoaded>>,
     mut events: EventReader<AssetEvent<Aseprite>>,
     mut cmd: Commands,
 ) {
@@ -215,7 +216,7 @@ fn rebuild_on_reload(
                 .filter(|(_, handle)| handle.id() == *id)
                 .for_each(|(entity, _)| {
                     if let Some(mut cmd) = cmd.get_entity(entity) {
-                        cmd.remove::<UiImage>().remove::<Handle<Image>>();
+                        cmd.insert(NotLoaded);
                     }
                 });
         }
