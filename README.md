@@ -1,5 +1,9 @@
 # Bevy Aseprite Ultra
 
+
+[![License: MIT or Apache 2.0](https://img.shields.io/badge/License-MIT%20or%20Apache2-blue.svg)](./LICENSE)
+[![Crate](https://img.shields.io/crates/v/bevy_aseprite_ultra.svg)](https://crates.io/crates/bevy_aseprite_ultra)
+
 The ultimate bevy aseprite plugin. This plugin allows you to import aseprite files into bevy, with 100% unbreakable
 hot reloading. You can also import static sprites from an aseprite atlas type file using slices with functional pivot offsets!
 
