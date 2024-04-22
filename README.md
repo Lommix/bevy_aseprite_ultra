@@ -99,7 +99,7 @@ fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
 
 // animation events - tell me when the animation is done
 // this is useful for one shot animations like explosions
-fn despawn_on_finish(mut cmd : Commands){
+fn despawn_on_finish(mut events: EventReader<AnimationEvents>, mut cmd : Commands){
     for event in events.read() {
         match event {
             AnimationEvents::Finished(entity) => cmd.entity(*entity).despawn_recursive(),
