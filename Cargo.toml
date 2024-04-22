@@ -9,18 +9,13 @@ repository = "https://github.com/Lommix/bevy_aseprite_ultra.git"
 license = "MIT"
 
 [dependencies]
-bevy = { version="0.13" , default-features=false, features=[
-	"bevy_sprite",
-	"bevy_asset",
-	"bevy_ui",
-]}
+bevy = { version = "0.13", default-features = false, features = [
+  "bevy_sprite",
+  "bevy_asset",
+  "bevy_ui",
+] }
 anyhow = "1.0.75"
-sprity = { git = "https://github.com/Lommix/sprity.git", branch = "main" }
-#sprity = { path = "../sprity"}
+aseprite-loader = "0.2.0"
 
 [features]
-dev = [
-	"bevy/multi-threaded",
-	"bevy/wayland",
-	"bevy/file_watcher",
-]
+dev = ["bevy/multi-threaded", "bevy/wayland", "bevy/file_watcher"]

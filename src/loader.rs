@@ -1,3 +1,5 @@
+use crate::NotLoaded;
+use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
     asset::{AssetLoader, AsyncReadExt},
     prelude::*,
@@ -8,9 +10,6 @@ use bevy::{
     sprite::Anchor,
     utils::{HashMap, Uuid},
 };
-use sprity::aseprite::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
-
-use crate::NotLoaded;
 
 pub struct AsepriteLoaderPlugin;
 impl Plugin for AsepriteLoaderPlugin {

@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, ops::Range};
 
 use crate::{loader::Aseprite, NotLoaded, UiTag};
+use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::prelude::*;
-use sprity::aseprite::binary::chunks::tags::AnimationDirection as RawDirection;
 
 pub struct AsepriteAnimationPlugin;
 impl Plugin for AsepriteAnimationPlugin {
