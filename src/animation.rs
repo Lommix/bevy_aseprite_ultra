@@ -358,6 +358,11 @@ fn next_frame(
     animation: &mut Animation,
     animation_range: &Range<usize>,
 ) -> Option<FrameTransition> {
+    // FIXME: imperfect, but when the tag is changed we need to make sure we're inside the active range.
+    //   Better might be to clamp the calculated value for `next` after it has been incremented or decremented.
+    state.current_frame = state
+        .current_frame
+        .clamp(animation_range.start, animation_range.end);
     match animation.direction {
         AnimationDirection::Forward => {
             let next = state.current_frame + 1;
