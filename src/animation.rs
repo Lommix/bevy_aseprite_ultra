@@ -113,6 +113,13 @@ impl Animation {
         self
     }
 
+    /// instanly starts playing a new animation, clearing any item left in the queue.
+    pub fn play(&mut self, tag: &str, repeat: AnimationRepeat) {
+        self.tag = Some(tag.to_string());
+        self.repeat = repeat;
+        self.queue.clear();
+    }
+
     /// chains an animation after the current one is done
     pub fn then(&mut self, tag: &str, repeats: AnimationRepeat) {
         self.queue.push_back((tag.to_string(), repeats));
