@@ -8,8 +8,9 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
     sprite::Anchor,
-    utils::{HashMap, Uuid},
+    utils::HashMap,
 };
+use uuid::Uuid;
 
 pub struct AsepriteLoaderPlugin;
 impl Plugin for AsepriteLoaderPlugin {
@@ -80,7 +81,7 @@ impl AssetLoader for AsepriteLoader {
         reader: &'a mut bevy::asset::io::Reader,
         _settings: &'a Self::Settings,
         load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
+    ) -> impl bevy::utils::ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             let mut bytes = Vec::new();
             reader.read_to_end(&mut bytes).await?;
@@ -120,7 +121,7 @@ impl AssetLoader for AsepriteLoader {
             }
 
             // ----------------------------- atlas
-            let (mut layout, image) = atlas_builder.finish().unwrap();
+            let (mut layout, image) = atlas_builder.build().unwrap();
 
             let frame_indicies = frame_images
                 .iter()
@@ -150,7 +151,8 @@ impl AssetLoader for AsepriteLoader {
                     None => None,
                 };
 
-                let layout_id = layout.add_texture(Rect::from_corners(min, max));
+                let layout_id =
+                    layout.add_texture(URect::from_corners(min.as_uvec2(), max.as_uvec2()));
 
                 slices.insert(
                     slice.name.into(),
