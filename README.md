@@ -9,7 +9,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
-|         0.14 |          0.2.0 |
+|         0.14 |          0.2.1 |
 |         0.13 |          0.1.0 |
 
 **The plugin is currently being battle tested and is not released yet**
@@ -62,12 +62,12 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
         animation: Animation::default()
                 .with_tag("walk-right")
-                .with_speed(2.),
+                .with_speed(2.)
                 // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
-                .with_repeat(AnimationRepeat::Count(42)),
+                .with_repeat(AnimationRepeat::Count(42))
                 // The direction is provided by the asperite config for the tag, but can be overwritten
                 // after the animation is loaded.
-                .with_direction(AnimationDirection::PingPong),
+                .with_direction(AnimationDirection::PingPong)
                 // you can also chain finite animations, loop animations with never finish
                 .with_then("walk-left", AnimationRepeat::Count(4))
                 .with_then("walk-up", AnimationRepeat::Loop)
