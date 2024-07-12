@@ -239,10 +239,10 @@ fn insert_aseprite_animation(
                 None => None,
             };
 
-            let start_frame_index = usize::from(maybe_tag.map(|tag| tag.range.start).unwrap_or(0));
+            let start_frame_index = usize::from(maybe_tag.map(|tag| *tag.range.start()).unwrap_or(0));
             let end_frame_index = usize::from(
                 maybe_tag
-                    .map(|tag| tag.range.end - 1)
+                    .map(|tag| *tag.range.end())
                     .unwrap_or(aseprite.frame_durations.len() as u16 - 1),
             );
 
@@ -312,7 +312,7 @@ fn update_aseprite_animation(
             let animation_range = match animation.tag.as_ref() {
                 Some(tag) => {
                     let r = &aseprite.tags.get(tag).as_ref().unwrap().range;
-                    usize::from(r.start)..usize::from(r.end)
+                    usize::from(*r.start())..usize::from(*r.end()+1)
                 }
                 None => 0..aseprite.frame_durations.len(),
             };

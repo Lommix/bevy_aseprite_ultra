@@ -43,7 +43,7 @@ impl Aseprite {
 #[derive(Debug)]
 pub struct TagMeta {
     pub direction: AnimationDirection,
-    pub range: std::ops::Range<u16>,
+    pub range: std::ops::RangeInclusive<u16>,
     pub repeat: u16,
 }
 
