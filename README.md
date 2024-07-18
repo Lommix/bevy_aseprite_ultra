@@ -1,6 +1,5 @@
 # Bevy Aseprite Ultra
 
-
 [![License: MIT or Apache 2.0](https://img.shields.io/badge/License-MIT%20or%20Apache2-blue.svg)](./LICENSE)
 [![Crate](https://img.shields.io/crates/v/bevy_aseprite_ultra.svg)](https://crates.io/crates/bevy_aseprite_ultra)
 
@@ -11,8 +10,6 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 | -----------: | -------------: |
 |         0.14 |          0.2.2 |
 |         0.13 |          0.1.0 |
-
-**The plugin is currently being battle tested and is not released yet**
 
 I use it in my game, check it out on my [blog](https://lommix.com)
 
