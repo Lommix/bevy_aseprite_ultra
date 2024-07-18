@@ -428,13 +428,13 @@ fn next_frame(
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Backward;
-                        state.current_frame = animation_range.end - 1;
+                        state.current_frame = animation_range.end - 2;
                         return Some(FrameTransition::AnimationLoopFinished);
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_direction = PlayDirection::Backward;
-                            state.current_frame = animation_range.end - 1;
+                            state.current_frame = animation_range.end - 2;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             return Some(FrameTransition::AnimationFinished);
