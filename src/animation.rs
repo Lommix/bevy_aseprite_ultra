@@ -225,21 +225,14 @@ fn insert_aseprite_animation(
                 return;
             };
 
-            let maybe_tag = match control.tag.as_ref() {
-                Some(tag) => Some(
-                    aseprite.tags.get(tag).expect(
-                        format!(
-                            "animation tag '{}' not found in '{:?}'",
-                            tag,
-                            aseprite_handle.path()
-                        )
-                        .as_str(),
-                    ),
-                ),
-                None => None,
-            };
+            let maybe_tag = control
+                .tag
+                .as_ref()
+                .map(|tag| aseprite.tags.get(tag))
+                .flatten();
 
-            let start_frame_index = usize::from(maybe_tag.map(|tag| *tag.range.start()).unwrap_or(0));
+            let start_frame_index =
+                usize::from(maybe_tag.map(|tag| *tag.range.start()).unwrap_or(0));
             let end_frame_index = usize::from(
                 maybe_tag
                     .map(|tag| *tag.range.end())
@@ -309,13 +302,13 @@ fn update_aseprite_animation(
                 return;
             };
 
-            let animation_range = match animation.tag.as_ref() {
-                Some(tag) => {
-                    let r = &aseprite.tags.get(tag).as_ref().unwrap().range;
-                    usize::from(*r.start())..usize::from(*r.end()+1)
-                }
-                None => 0..aseprite.frame_durations.len(),
-            };
+            let animation_range = animation
+                .tag
+                .as_ref()
+                .map(|tag| aseprite.tags.get(tag))
+                .flatten()
+                .map(|tag| usize::from(*tag.range.start())..usize::from(tag.range.end() + 1))
+                .unwrap_or(0..aseprite.frame_durations.len());
 
             state.elapsed +=
                 std::time::Duration::from_secs_f32(time.delta_seconds() * animation.speed);
