@@ -88,7 +88,8 @@ impl AssetLoader for AsepriteLoader {
             let raw = AsepriteFile::load(&bytes)?;
 
             let mut frame_images = Vec::new();
-            let mut atlas_builder = TextureAtlasBuilder::default().max_size(UVec2::splat(4096));
+            let mut atlas_builder = TextureAtlasBuilder::default();
+            atlas_builder.max_size(UVec2::splat(4096));
 
             let mut images = Vec::new();
 
