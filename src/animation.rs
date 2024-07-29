@@ -113,6 +113,13 @@ impl Animation {
         self
     }
 
+    /// instanly starts playing a new animation, clearing any item left in the queue.
+    pub fn play(&mut self, tag: &str, repeat: AnimationRepeat) {
+        self.tag = Some(tag.to_string());
+        self.repeat = repeat;
+        self.queue.clear();
+    }
+
     /// chains an animation after the current one is done
     pub fn then(&mut self, tag: &str, repeats: AnimationRepeat) {
         self.queue.push_back((tag.to_string(), repeats));
@@ -218,24 +225,17 @@ fn insert_aseprite_animation(
                 return;
             };
 
-            let maybe_tag = match control.tag.as_ref() {
-                Some(tag) => Some(
-                    aseprite.tags.get(tag).expect(
-                        format!(
-                            "animation tag '{}' not found in '{:?}'",
-                            tag,
-                            aseprite_handle.path()
-                        )
-                        .as_str(),
-                    ),
-                ),
-                None => None,
-            };
+            let maybe_tag = control
+                .tag
+                .as_ref()
+                .map(|tag| aseprite.tags.get(tag))
+                .flatten();
 
-            let start_frame_index = usize::from(maybe_tag.map(|tag| tag.range.start).unwrap_or(0));
+            let start_frame_index =
+                usize::from(maybe_tag.map(|tag| *tag.range.start()).unwrap_or(0));
             let end_frame_index = usize::from(
                 maybe_tag
-                    .map(|tag| tag.range.end - 1)
+                    .map(|tag| *tag.range.end())
                     .unwrap_or(aseprite.frame_durations.len() as u16 - 1),
             );
 
@@ -302,13 +302,13 @@ fn update_aseprite_animation(
                 return;
             };
 
-            let animation_range = match animation.tag.as_ref() {
-                Some(tag) => {
-                    let r = &aseprite.tags.get(tag).as_ref().unwrap().range;
-                    usize::from(r.start)..usize::from(r.end)
-                }
-                None => 0..aseprite.frame_durations.len(),
-            };
+            let animation_range = animation
+                .tag
+                .as_ref()
+                .map(|tag| aseprite.tags.get(tag))
+                .flatten()
+                .map(|tag| usize::from(*tag.range.start())..usize::from(tag.range.end() + 1))
+                .unwrap_or(0..aseprite.frame_durations.len());
 
             state.elapsed +=
                 std::time::Duration::from_secs_f32(time.delta_seconds() * animation.speed);
@@ -358,6 +358,11 @@ fn next_frame(
     animation: &mut Animation,
     animation_range: &Range<usize>,
 ) -> Option<FrameTransition> {
+    // FIXME: imperfect, but when the tag is changed we need to make sure we're inside the active range.
+    //   Better might be to clamp the calculated value for `next` after it has been incremented or decremented.
+    state.current_frame = state
+        .current_frame
+        .clamp(animation_range.start, animation_range.end);
     match animation.direction {
         AnimationDirection::Forward => {
             let next = state.current_frame + 1;
@@ -420,13 +425,13 @@ fn next_frame(
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Backward;
-                        state.current_frame = animation_range.end - 1;
+                        state.current_frame = animation_range.end - 2;
                         return Some(FrameTransition::AnimationLoopFinished);
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_direction = PlayDirection::Backward;
-                            state.current_frame = animation_range.end - 1;
+                            state.current_frame = animation_range.end - 2;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             return Some(FrameTransition::AnimationFinished);

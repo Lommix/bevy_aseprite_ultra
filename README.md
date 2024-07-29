@@ -1,6 +1,5 @@
 # Bevy Aseprite Ultra
 
-
 [![License: MIT or Apache 2.0](https://img.shields.io/badge/License-MIT%20or%20Apache2-blue.svg)](./LICENSE)
 [![Crate](https://img.shields.io/crates/v/bevy_aseprite_ultra.svg)](https://crates.io/crates/bevy_aseprite_ultra)
 
@@ -9,9 +8,8 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
+|         0.14 |          0.2.3 |
 |         0.13 |          0.1.0 |
-
-**The plugin is currently being battle tested and is not released yet**
 
 I use it in my game, check it out on my [blog](https://lommix.com)
 
@@ -61,12 +59,12 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
         animation: Animation::default()
                 .with_tag("walk-right")
-                .with_speed(2.),
+                .with_speed(2.)
                 // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
-                .with_repeat(AnimationRepeat::Count(42)),
+                .with_repeat(AnimationRepeat::Count(42))
                 // The direction is provided by the asperite config for the tag, but can be overwritten
                 // after the animation is loaded.
-                .with_direction(AnimationDirection::PingPong),
+                .with_direction(AnimationDirection::PingPong)
                 // you can also chain finite animations, loop animations with never finish
                 .with_then("walk-left", AnimationRepeat::Count(4))
                 .with_then("walk-up", AnimationRepeat::Loop)
