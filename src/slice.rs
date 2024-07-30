@@ -79,7 +79,7 @@ fn insert_aseprite_slice(
             &Handle<Aseprite>,
             Option<&UiTag>,
         ),
-        With<NotLoaded>,
+        Or<(With<NotLoaded>, Changed<AsepriteSlice>)>,
     >,
     mut sprites: Query<&mut Sprite>,
     aseprites: Res<Assets<Aseprite>>,
