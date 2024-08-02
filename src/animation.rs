@@ -382,11 +382,7 @@ fn next_frame(
                     }
                 }
             } else {
-                if next < animation_range.start {
-                    state.current_frame = animation_range.start;
-                } else {
-                    state.current_frame = next;
-                }
+                state.current_frame = next;
             }
         }
         AnimationDirection::Reverse => {
