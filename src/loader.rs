@@ -89,6 +89,8 @@ impl AssetLoader for AsepriteLoader {
 
             let mut frame_images = Vec::new();
             let mut atlas_builder = TextureAtlasBuilder::default();
+            atlas_builder.max_size(UVec2::splat(4096));
+
             let mut images = Vec::new();
 
             for (index, _frame) in raw.frames().iter().enumerate() {
@@ -121,7 +123,9 @@ impl AssetLoader for AsepriteLoader {
             }
 
             // ----------------------------- atlas
-            let (mut layout, image) = atlas_builder.build().unwrap();
+            let (mut layout, image) = atlas_builder.build().map_err(|e| {
+                anyhow::anyhow!("Failed to build texture atlas: {:?}", e)
+            })?;
 
             let frame_indicies = frame_images
                 .iter()
