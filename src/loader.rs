@@ -12,11 +12,16 @@ use bevy::{
 };
 use uuid::Uuid;
 
-pub struct AsepriteLoaderPlugin;
+pub struct AsepriteLoaderPlugin {
+    pub max_atlas_size: UVec2,
+}
+
 impl Plugin for AsepriteLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<Aseprite>();
-        app.register_asset_loader(AsepriteLoader);
+        app.register_asset_loader(AsepriteLoader {
+            max_atlas_size: self.max_atlas_size,
+        });
         app.add_systems(
             Update,
             rebuild_on_reload.run_if(on_event::<AssetEvent<Aseprite>>()),
@@ -68,8 +73,9 @@ impl From<&SliceMeta> for Anchor {
     }
 }
 
-#[derive(Default)]
-pub struct AsepriteLoader;
+pub struct AsepriteLoader {
+    max_atlas_size: UVec2,
+}
 
 impl AssetLoader for AsepriteLoader {
     type Asset = Aseprite;
@@ -89,7 +95,7 @@ impl AssetLoader for AsepriteLoader {
 
             let mut frame_images = Vec::new();
             let mut atlas_builder = TextureAtlasBuilder::default();
-            atlas_builder.max_size(UVec2::splat(4096));
+            atlas_builder.max_size(self.max_atlas_size);
 
             let mut images = Vec::new();
 
@@ -123,9 +129,9 @@ impl AssetLoader for AsepriteLoader {
             }
 
             // ----------------------------- atlas
-            let (mut layout, image) = atlas_builder.build().map_err(|e| {
-                anyhow::anyhow!("Failed to build texture atlas: {:?}", e)
-            })?;
+            let (mut layout, image) = atlas_builder
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build texture atlas: {:?}", e))?;
 
             let frame_indicies = frame_images
                 .iter()

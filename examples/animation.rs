@@ -6,7 +6,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
         }))
-        .add_plugins(BevySprityPlugin)
+        .add_plugins(BevyAsepriteUltraPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, events)
         .run();
