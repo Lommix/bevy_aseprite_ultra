@@ -117,6 +117,7 @@ impl Animation {
     pub fn play(&mut self, tag: &str, repeat: AnimationRepeat) {
         self.tag = Some(tag.to_string());
         self.repeat = repeat;
+        self.playing = true;
         self.queue.clear();
     }
 
