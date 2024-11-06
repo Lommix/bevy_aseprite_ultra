@@ -1,3 +1,11 @@
+## 3.0.0
+
+-   updated to bevy 0.15
+-   changed plugin name to `AsepriteUltraPlugin`.
+-   `Handle<Aseprite>` changed to `AsepriteHandle`
+-   added `thiserror`.
+-   removed `anyhow`.
+
 ## 2.2.4
 
 -   aseprite slice component can now be changed at runtime.

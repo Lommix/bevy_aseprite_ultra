@@ -1,4 +1,7 @@
-use crate::{loader::Aseprite, NotLoaded, UiTag};
+use crate::{
+    loader::{Aseprite, AsepriteHandle},
+    NotLoaded, UiTag,
+};
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
@@ -29,9 +32,8 @@ impl Plugin for AsepriteSlicePlugin {
 #[derive(Bundle, Default)]
 pub struct AsepriteSliceBundle {
     pub slice: AsepriteSlice,
-    pub aseprite: Handle<Aseprite>,
+    pub aseprite: AsepriteHandle,
     pub sprite: Sprite,
-    pub atlas: TextureAtlas,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
@@ -46,8 +48,7 @@ pub struct AsepriteSliceBundle {
 #[derive(Bundle, Default)]
 pub struct AsepriteSliceUiBundle {
     pub slice: AsepriteSlice,
-    pub aseprite: Handle<Aseprite>,
-    pub atlas: TextureAtlas,
+    pub aseprite: AsepriteHandle,
     pub not_loaded: NotLoaded,
     pub ui_tag: UiTag,
 }
@@ -74,30 +75,31 @@ fn insert_aseprite_slice(
     mut query: Query<
         (
             Entity,
-            &mut TextureAtlas,
+            &mut Sprite,
             &AsepriteSlice,
-            &Handle<Aseprite>,
+            &AsepriteHandle,
             Option<&UiTag>,
         ),
         Or<(With<NotLoaded>, Changed<AsepriteSlice>)>,
     >,
-    mut sprites: Query<&mut Sprite>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     query
         .iter_mut()
-        .for_each(|(entity, mut atlas, slice, handle, maybe_ui)| {
-            let Some(aseprite) = aseprites.get(handle) else {
+        .for_each(|(entity, mut sprite, slice, handle, maybe_ui)| {
+            let Some(aseprite) = aseprites.get(&**handle) else {
                 return;
             };
 
             let slice_meta = aseprite
                 .slices
                 .get(&slice.0)
-                .expect(format!("Slice {} not found in {:?}", slice.0, handle.path()).as_str());
+                .expect(format!("Slice {} not found in {:?}", slice.0, handle).as_str());
 
-            atlas.layout = aseprite.atlas_layout.clone();
-            atlas.index = slice_meta.atlas_id;
+            sprite.texture_atlas = Some(TextureAtlas {
+                layout: aseprite.atlas_layout.clone(),
+                index: slice_meta.atlas_id,
+            });
 
             if let Some(mut cmd) = cmd.get_entity(entity) {
                 match maybe_ui {
@@ -106,11 +108,9 @@ fn insert_aseprite_slice(
                             .insert((UiImage::new(aseprite.atlas_image.clone()),));
                     }
                     None => {
-                        if let Ok(mut sprite) = sprites.get_mut(entity) {
-                            sprite.anchor = Anchor::from(slice_meta);
-                        }
-                        cmd.remove::<NotLoaded>()
-                            .insert(aseprite.atlas_image.clone());
+                        cmd.remove::<NotLoaded>();
+                        sprite.image = aseprite.atlas_image.clone();
+                        sprite.anchor = Anchor::from(slice_meta);
                     }
                 }
             };

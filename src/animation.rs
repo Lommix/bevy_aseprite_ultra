@@ -1,6 +1,9 @@
 use std::{collections::VecDeque, ops::Range};
 
-use crate::{loader::Aseprite, NotLoaded, UiTag};
+use crate::{
+    loader::{Aseprite, AsepriteHandle},
+    NotLoaded, UiTag,
+};
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::prelude::*;
 
@@ -36,11 +39,10 @@ impl Plugin for AsepriteAnimationPlugin {
 /// porvided in the aseprite file, but can be interacted with at runtime.
 #[derive(Bundle, Default)]
 pub struct AsepriteAnimationBundle {
-    pub aseprite: Handle<Aseprite>,
+    pub aseprite: AsepriteHandle,
     pub animation: Animation,
     pub animation_state: AnimationState,
     pub sprite: Sprite,
-    pub atlas: TextureAtlas,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
@@ -51,10 +53,9 @@ pub struct AsepriteAnimationBundle {
 
 #[derive(Bundle, Default)]
 pub struct AsepriteAnimationUiBundle {
-    pub aseprite: Handle<Aseprite>,
+    pub aseprite: AsepriteHandle,
     pub animation: Animation,
     pub animation_state: AnimationState,
-    pub atlas: TextureAtlas,
     pub ui_tag: UiTag,
     pub not_loaded: NotLoaded,
 }
@@ -210,8 +211,8 @@ fn insert_aseprite_animation(
             Entity,
             &mut AnimationState,
             &mut Animation,
-            &mut TextureAtlas,
-            &Handle<Aseprite>,
+            &mut Sprite,
+            &AsepriteHandle,
             Option<&UiTag>,
         ),
         With<NotLoaded>,
@@ -220,8 +221,8 @@ fn insert_aseprite_animation(
     asesprites: Res<Assets<Aseprite>>,
 ) {
     query.iter_mut().for_each(
-        |(entity, mut state, mut control, mut atlas, aseprite_handle, maybe_ui)| {
-            let Some(aseprite) = asesprites.get(aseprite_handle) else {
+        |(entity, mut state, mut control, mut sprite, aseprite_handle, maybe_ui)| {
+            let Some(aseprite) = asesprites.get(&aseprite_handle.0) else {
                 return;
             };
 
@@ -261,8 +262,13 @@ fn insert_aseprite_animation(
                 };
             }
 
-            atlas.layout = aseprite.atlas_layout.clone();
-            atlas.index = aseprite.get_atlas_index(state.current_frame);
+            sprite.texture_atlas = Some(TextureAtlas {
+                layout: aseprite.atlas_layout.clone(),
+                index: aseprite.get_atlas_index(state.current_frame),
+            });
+
+            // sprite.layout = aseprite.atlas_layout.clone();
+            // atlas.index = aseprite.get_atlas_index(state.current_frame);
 
             if let Some(mut cmd) = cmd.get_entity(entity) {
                 match maybe_ui {
@@ -271,8 +277,9 @@ fn insert_aseprite_animation(
                             .insert(UiImage::new(aseprite.atlas_image.clone()));
                     }
                     None => {
-                        cmd.remove::<NotLoaded>()
-                            .insert(aseprite.atlas_image.clone());
+                        sprite.image = aseprite.atlas_image.clone();
+                        cmd.remove::<NotLoaded>();
+                        // .insert(aseprite.atlas_image.clone());
                     }
                 };
             };
@@ -284,21 +291,21 @@ fn update_aseprite_animation(
     mut query: Query<(
         Entity,
         &mut AnimationState,
-        &mut TextureAtlas,
+        &mut Sprite,
         &mut Animation,
-        &Handle<Aseprite>,
+        &AsepriteHandle,
     )>,
     mut events: EventWriter<AnimationEvents>,
     asesprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
 ) {
     query.iter_mut().for_each(
-        |(entity, mut state, mut atlas_comp, mut animation, aseprite_handle)| {
+        |(entity, mut state, mut sprite, mut animation, aseprite_handle)| {
             if !animation.playing {
                 return;
             }
 
-            let Some(aseprite) = asesprites.get(aseprite_handle) else {
+            let Some(aseprite) = asesprites.get(&aseprite_handle.0) else {
                 return;
             };
 
@@ -311,14 +318,18 @@ fn update_aseprite_animation(
                 .unwrap_or(0..aseprite.frame_durations.len());
 
             state.elapsed +=
-                std::time::Duration::from_secs_f32(time.delta_seconds() * animation.speed);
+                std::time::Duration::from_secs_f32(time.delta_secs() * animation.speed);
 
             let Some(frame_time) = aseprite.frame_durations.get(state.current_frame) else {
                 return;
             };
 
             let atlas_frame_index = aseprite.get_atlas_index(state.current_frame);
-            atlas_comp.index = atlas_frame_index;
+
+            sprite.texture_atlas = Some(TextureAtlas {
+                layout: aseprite.atlas_layout.clone(),
+                index: atlas_frame_index,
+            });
 
             if state.elapsed > *frame_time {
                 match next_frame(&mut state, &mut animation, &animation_range) {

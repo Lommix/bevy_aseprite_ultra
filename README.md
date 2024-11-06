@@ -8,6 +8,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
+|       0.15rc |       wip main |
 |         0.14 |          0.2.4 |
 |         0.13 |          0.1.0 |
 
@@ -55,7 +56,7 @@ use bevy_aseprite_ultra::prelude::*;
 // Load the an animation from an aseprite file
 fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite"),
+        aseprite: server.load("player.aseprite").into(),
         transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
         animation: Animation::default()
                 .with_tag("walk-right")
@@ -89,7 +90,7 @@ fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
             flip_x: true,
             ..default()
         },
-        aseprite: server.load("ghost_slices.aseprite"),
+        aseprite: server.load("ghost_slices.aseprite").into(),
         transform: Transform::from_translation(Vec3::new(32., 0., 0.)),
         ..default()
     });
@@ -120,7 +121,7 @@ cmd.spawn((
             ..default()
         },
         AsepriteAnimationUiBundle{
-            aseprite: server.load("yourfile.aseprite"),
+            aseprite: server.load("yourfile.aseprite").into(),
             animation: Animation{
                 tag : Some("idle".to_string()),
                 ..default()
@@ -136,7 +137,7 @@ cmd.spawn((
             ..default()
         },
         AsepriteSliceUiBundle{
-            aseprite: server.load("yourfile.aseprite"),
+            aseprite: server.load("yourfile.aseprite").into(),
             slice: AsepriteSlice::from("your_slice"),
             ..default()
         },

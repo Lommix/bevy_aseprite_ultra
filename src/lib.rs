@@ -2,26 +2,27 @@
 use bevy::prelude::*;
 
 pub(crate) mod animation;
+pub(crate) mod error;
 pub(crate) mod loader;
 pub(crate) mod slice;
-
-pub struct BevySprityPlugin;
-impl Plugin for BevySprityPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(loader::AsepriteLoaderPlugin);
-        app.add_plugins(slice::AsepriteSlicePlugin);
-        app.add_plugins(animation::AsepriteAnimationPlugin);
-    }
-}
 
 pub mod prelude {
     pub use crate::animation::{
         Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AsepriteAnimationBundle,
         AsepriteAnimationUiBundle,
     };
-    pub use crate::loader::Aseprite;
+    pub use crate::loader::{Aseprite, AsepriteHandle};
     pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle, AsepriteSliceUiBundle};
-    pub use crate::BevySprityPlugin;
+    pub use crate::AsepriteUltraPlugin;
+}
+
+pub struct AsepriteUltraPlugin;
+impl Plugin for AsepriteUltraPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(loader::AsepriteLoaderPlugin);
+        app.add_plugins(slice::AsepriteSlicePlugin);
+        app.add_plugins(animation::AsepriteAnimationPlugin);
+    }
 }
 
 /// tags a bundle as ui node

@@ -1,7 +1,7 @@
-use crate::NotLoaded;
+use crate::{error::AsepriteError, NotLoaded};
 use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
-    asset::{AssetLoader, AsyncReadExt},
+    asset::{io::Reader, AssetLoader},
     prelude::*,
     render::{
         render_asset::RenderAssetUsages,
@@ -19,7 +19,7 @@ impl Plugin for AsepriteLoaderPlugin {
         app.register_asset_loader(AsepriteLoader);
         app.add_systems(
             Update,
-            rebuild_on_reload.run_if(on_event::<AssetEvent<Aseprite>>()),
+            rebuild_on_reload.run_if(on_event::<AssetEvent<Aseprite>>),
         );
     }
 }
@@ -32,6 +32,22 @@ pub struct Aseprite {
     pub atlas_layout: Handle<TextureAtlasLayout>,
     pub atlas_image: Handle<Image>,
     frame_indicies: Vec<usize>,
+}
+
+#[derive(Component, Default, Debug, Reflect, Clone, Deref, DerefMut)]
+#[reflect]
+pub struct AsepriteHandle(pub Handle<Aseprite>);
+
+impl From<Handle<Aseprite>> for AsepriteHandle {
+    fn from(value: Handle<Aseprite>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&Handle<Aseprite>> for AsepriteHandle {
+    fn from(value: &Handle<Aseprite>) -> Self {
+        Self(value.clone())
+    }
 }
 
 impl Aseprite {
@@ -74,132 +90,131 @@ pub struct AsepriteLoader;
 impl AssetLoader for AsepriteLoader {
     type Asset = Aseprite;
     type Settings = ();
-    type Error = anyhow::Error;
+    type Error = super::error::AsepriteError;
 
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut bevy::asset::io::Reader,
-        _settings: &'a Self::Settings,
-        load_context: &'a mut bevy::asset::LoadContext,
-    ) -> impl bevy::utils::ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let raw = AsepriteFile::load(&bytes)?;
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        load_context: &mut bevy::asset::LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader
+            .read_to_end(&mut bytes)
+            .await
+            .map_err(|_| AsepriteError::ReadError)?;
 
-            let mut frame_images = Vec::new();
-            let mut atlas_builder = TextureAtlasBuilder::default();
-            atlas_builder.max_size(UVec2::splat(4096));
+        let raw = AsepriteFile::load(&bytes)?;
 
-            let mut images = Vec::new();
+        let mut frame_images = Vec::new();
+        let mut atlas_builder = TextureAtlasBuilder::default();
+        atlas_builder.max_size(UVec2::splat(4096));
 
-            for (index, _frame) in raw.frames().iter().enumerate() {
-                let (width, height) = raw.size();
-                let mut buffer = vec![0; width as usize * height as usize * 4];
+        let mut images = Vec::new();
 
-                let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
+        for (index, _frame) in raw.frames().iter().enumerate() {
+            let (width, height) = raw.size();
+            let mut buffer = vec![0; width as usize * height as usize * 4];
 
-                let image = Image::new(
-                    Extent3d {
-                        width: width as u32,
-                        height: height as u32,
-                        depth_or_array_layers: 1,
-                    },
-                    TextureDimension::D2,
-                    buffer.clone(),
-                    TextureFormat::Rgba8UnormSrgb,
-                    RenderAssetUsages::default(),
-                );
-                images.push(image);
-            }
+            let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
 
-            for image in images.iter() {
-                let handle_id = AssetId::Uuid {
-                    uuid: Uuid::new_v4(),
-                };
+            let image = Image::new(
+                Extent3d {
+                    width: width as u32,
+                    height: height as u32,
+                    depth_or_array_layers: 1,
+                },
+                TextureDimension::D2,
+                buffer.clone(),
+                TextureFormat::Rgba8UnormSrgb,
+                RenderAssetUsages::default(),
+            );
+            images.push(image);
+        }
 
-                frame_images.push(handle_id);
-                atlas_builder.add_texture(Some(handle_id), &image);
-            }
+        for image in images.iter() {
+            let handle_id = AssetId::Uuid {
+                uuid: Uuid::new_v4(),
+            };
 
-            // ----------------------------- atlas
-            let (mut layout, image) = atlas_builder.build().map_err(|e| {
-                anyhow::anyhow!("Failed to build texture atlas: {:?}", e)
-            })?;
+            frame_images.push(handle_id);
+            atlas_builder.add_texture(Some(handle_id), &image);
+        }
 
-            let frame_indicies = frame_images
-                .iter()
-                .map(|id| layout.get_texture_index(*id).unwrap())
-                .collect::<Vec<_>>();
+        // ----------------------------- atlas
+        let (mut layout, source, image) = atlas_builder.build()?;
 
-            // ----------------------------- slices
-            let mut slices = HashMap::new();
-            raw.slices().iter().for_each(|slice| {
-                let slice_key = slice.slice_keys.first().unwrap();
+        let frame_indicies = frame_images
+            .iter()
+            .map(|id| source.texture_ids.get(id).cloned().unwrap())
+            .collect::<Vec<_>>();
 
-                let min = Vec2::new(slice_key.x as f32, slice_key.y as f32);
-                let max = min + Vec2::new(slice_key.width as f32, slice_key.height as f32);
+        // ----------------------------- slices
+        let mut slices = HashMap::new();
+        raw.slices().iter().for_each(|slice| {
+            let slice_key = slice.slice_keys.first().unwrap();
 
-                let pivot = match slice_key.pivot {
-                    Some(pivot) => Some(Vec2::new(pivot.x as f32, pivot.y as f32)),
-                    None => None,
-                };
+            let min = Vec2::new(slice_key.x as f32, slice_key.y as f32);
+            let max = min + Vec2::new(slice_key.width as f32, slice_key.height as f32);
 
-                let nine_patch = match slice_key.nine_patch {
-                    Some(nine_patch) => Some(Vec4::new(
-                        nine_patch.x as f32,
-                        nine_patch.y as f32,
-                        nine_patch.width as f32,
-                        nine_patch.height as f32,
-                    )),
-                    None => None,
-                };
+            let pivot = match slice_key.pivot {
+                Some(pivot) => Some(Vec2::new(pivot.x as f32, pivot.y as f32)),
+                None => None,
+            };
 
-                let layout_id =
-                    layout.add_texture(URect::from_corners(min.as_uvec2(), max.as_uvec2()));
+            let nine_patch = match slice_key.nine_patch {
+                Some(nine_patch) => Some(Vec4::new(
+                    nine_patch.x as f32,
+                    nine_patch.y as f32,
+                    nine_patch.width as f32,
+                    nine_patch.height as f32,
+                )),
+                None => None,
+            };
 
-                slices.insert(
-                    slice.name.into(),
-                    SliceMeta {
-                        rect: Rect::from_corners(min, max),
-                        atlas_id: layout_id,
-                        pivot,
-                        nine_patch,
-                    },
-                );
-            });
+            let layout_id = layout.add_texture(URect::from_corners(min.as_uvec2(), max.as_uvec2()));
 
-            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
-            let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
+            slices.insert(
+                slice.name.into(),
+                SliceMeta {
+                    rect: Rect::from_corners(min, max),
+                    atlas_id: layout_id,
+                    pivot,
+                    nine_patch,
+                },
+            );
+        });
 
-            // ---------------------------- tags
-            let mut tags = HashMap::new();
-            raw.tags().iter().for_each(|tag| {
-                tags.insert(
-                    tag.name.clone(),
-                    TagMeta {
-                        direction: tag.direction,
-                        range: tag.range.clone(),
-                        repeat: tag.repeat.unwrap_or(0),
-                    },
-                );
-            });
+        let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
+        let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
 
-            // ---------------------------- frames
-            let frame_durations = raw
-                .frames()
-                .iter()
-                .map(|frame| std::time::Duration::from_millis(u64::from(frame.duration)))
-                .collect();
+        // ---------------------------- tags
+        let mut tags = HashMap::new();
+        raw.tags().iter().for_each(|tag| {
+            tags.insert(
+                tag.name.clone(),
+                TagMeta {
+                    direction: tag.direction,
+                    range: tag.range.clone(),
+                    repeat: tag.repeat.unwrap_or(0),
+                },
+            );
+        });
 
-            Ok(Aseprite {
-                slices,
-                tags,
-                frame_durations,
-                atlas_layout,
-                atlas_image,
-                frame_indicies,
-            })
+        // ---------------------------- frames
+        let frame_durations = raw
+            .frames()
+            .iter()
+            .map(|frame| std::time::Duration::from_millis(u64::from(frame.duration)))
+            .collect();
+
+        Ok(Aseprite {
+            slices,
+            tags,
+            frame_durations,
+            atlas_layout,
+            atlas_image,
+            frame_indicies,
         })
     }
 
@@ -210,7 +225,7 @@ impl AssetLoader for AsepriteLoader {
 
 /// trigger rebuild on aseprite entities when the asset is reloaded
 fn rebuild_on_reload(
-    aseprite_entites: Query<(Entity, &Handle<Aseprite>), Without<NotLoaded>>,
+    aseprite_entites: Query<(Entity, &AsepriteHandle), Without<NotLoaded>>,
     mut events: EventReader<AssetEvent<Aseprite>>,
     mut cmd: Commands,
 ) {
