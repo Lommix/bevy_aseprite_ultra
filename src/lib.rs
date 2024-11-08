@@ -8,8 +8,8 @@ pub(crate) mod slice;
 
 pub mod prelude {
     pub use crate::animation::{
-        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AseSpriteAnimation,
-        AseUiAnimation, FrameChangedEvent, PlayDirection,
+        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AnimationState,
+        AseSpriteAnimation, AseUiAnimation, FrameChangedEvent, PlayDirection,
     };
     pub use crate::loader::Aseprite;
     pub use crate::slice::{AseSpriteSlice, AseUiSlice};
