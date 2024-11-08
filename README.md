@@ -8,7 +8,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
-|       0.15rc |       wip main |
+|         0.15 |           main |
 |         0.14 |          0.2.4 |
 |         0.13 |          0.1.0 |
 
@@ -30,13 +30,14 @@ I use it in my game, check it out on my [blog](https://lommix.com)
 -   One shot animations and events when they finish.
 -   Static sprites with slices. Use aseprite for all your icon and ui needs!
 
-(for hotreload to work, you must have the `file_watcher` cargo dependency for bevy installed)
+(hot reloading requires the `file_watcher` feature in bevy)
 
 ## Example
 
 ```bash
 cargo run --example slices
 cargo run --example animations
+cargo run --example ui
 ```
 
 ![Example](docs/example.gif)
@@ -45,7 +46,11 @@ cargo run --example animations
 
 ---
 
-There are two main Bundles added by this plugin, `AsepriteAnimationBundle` and `AsepriteSliceBundle`.
+
+**!Big Change!**
+
+With bevy 0.15 `required components` landed. These are awesome and make the syntax super sexy and concise.
+
 
 ```rust
 use bevy::prelude::*;
@@ -55,48 +60,42 @@ use bevy_aseprite_ultra::prelude::*;
 
 // Load the an animation from an aseprite file
 fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite").into(),
-        transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        animation: Animation::default()
-                .with_tag("walk-right")
+    cmd.spawn((
+        AseSpriteAnimation {
+            aseprite: server.load("player.aseprite").into(),
+            animation: Animation::tag("walk-right")
                 .with_speed(2.)
                 // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
                 .with_repeat(AnimationRepeat::Count(42))
                 // The direction is provided by the asperite config for the tag, but can be overwritten
                 // after the animation is loaded.
                 .with_direction(AnimationDirection::PingPong)
-                // you can also chain finite animations, loop animations with never finish
+                // you can also chain finite animations, loop animations will never finish
                 .with_then("walk-left", AnimationRepeat::Count(4))
-                .with_then("walk-up", AnimationRepeat::Loop)
-        // you can override the default sprite settings here
-        sprite: Sprite {
+                .with_then("walk-up", AnimationRepeat::Loop), // you can override the default sprite settings here
+        },
+        Sprite {
+            // under the hood its just sprites.
+            // only the image and atlas is touched.
+            // this works
             flip_x: true,
             ..default()
         },
-        ..default()
-    });
+    ));
 }
 
 // Load a static slice from an aseprite file
+// create for any static atlas with marked regions aka slices.
 fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
-    cmd.spawn(AsepriteSliceBundle {
-        slice: "ghost_blue".into(),
-        // you can override the default sprite settings here
-        // the `rect` will be overriden by the slice
-        // if there is a pivot provided in the aseprite slice, the `anchor` will be overwritten
-        // and changes the origin of rotation.
-        sprite: Sprite {
-            flip_x: true,
-            ..default()
+    cmd.spawn((
+        AseSpriteSlice {
+            name: "ghost_red".into(),
+            aseprite: server.load("ball.aseprite"),
         },
-        aseprite: server.load("ghost_slices.aseprite").into(),
-        transform: Transform::from_translation(Vec3::new(32., 0., 0.)),
-        ..default()
-    });
+    ));
 }
 
-// animation events - tell me when the animation is done
+// animation events
 // this is useful for one shot animations like explosions
 fn despawn_on_finish(mut events: EventReader<AnimationEvents>, mut cmd : Commands){
     for event in events.read() {
@@ -116,31 +115,24 @@ There is also an Ui Bundle for Bevy Ui Nodes!
 ```rust
 // animations in bevy ui
 cmd.spawn((
-        ButtonBundle{
-            // node config
-            ..default()
-        },
-        AsepriteAnimationUiBundle{
-            aseprite: server.load("yourfile.aseprite").into(),
-            animation: Animation{
-                tag : Some("idle".to_string()),
-                ..default()
-            },
-            ..default()
+        Button,
+        AseUiAnimation {
+            aseprite: server.load("player.aseprite").into(),
+            animation: Animation::default().with_tag("walk-right"),
         },
 ));
 
 // slices in bevy ui
 cmd.spawn((
-        ImageBundle{
-            // node config
+        Node {
+            width: Val::Px(100.),
+            height: Val::Px(100.),
+            border: UiRect::all(Val::Px(5.)),
             ..default()
         },
-        AsepriteSliceUiBundle{
-            aseprite: server.load("yourfile.aseprite").into(),
-            slice: AsepriteSlice::from("your_slice"),
-            ..default()
+        AseUiSlice {
+            name: "ghost_red".into(),
+            aseprite: server.load("ghost_slices.aseprite"),
         },
 ));
-
 ```

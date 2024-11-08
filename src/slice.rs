@@ -1,118 +1,115 @@
-use crate::{
-    loader::{Aseprite, AsepriteHandle},
-    NotLoaded, UiTag,
-};
+use crate::{loader::Aseprite, FullyLoaded};
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
 impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, insert_aseprite_slice);
-        app.register_type::<AsepriteSlice>();
+        app.add_systems(
+            Update,
+            (
+                update_aseprite_sprite_slice,
+                update_aseprite_ui_slice,
+                hotreload_ui_slice.run_if(on_event::<AssetEvent<Aseprite>>),
+            ),
+        );
+        app.register_type::<AseSpriteSlice>();
     }
 }
 
-/// The `AsepriteSliceBundle` bundles the components needed to render a slice of an aseprite.
-/// This is intended to be used for static Sprite Atlases.
-/// So only the first frame of your aseprite file will be considered.
-///
-/// ```rust
-/// // example from examples/slices.rs
-/// command.spawn(AsepriteSliceBundle {
-///    slice: "ghost_red".into(),
-///    aseprite: server.load("ghost_slices.aseprite"),
-///    sprite: Sprite {
-///         flip_x: true,
-///         ..default()
-///    },
-///    transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-///     ..default()
-/// });
-/// ```
-#[derive(Bundle, Default)]
-pub struct AsepriteSliceBundle {
-    pub slice: AsepriteSlice,
-    pub aseprite: AsepriteHandle,
-    pub sprite: Sprite,
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-    pub visibility: Visibility,
-    pub inherited_visibility: InheritedVisibility,
-    pub view_visibility: ViewVisibility,
-    pub not_loaded: NotLoaded,
+/// Displays a aseprite atlas slice
+/// on an UI entity.
+#[derive(Component, Reflect, Default, Debug, Clone)]
+#[require(UiImage)]
+#[reflect]
+pub struct AseUiSlice {
+    pub name: String,
+    pub aseprite: Handle<Aseprite>,
 }
 
-/// The `AsepriteSliceUiBundle` bundles the components needed to render a slice of an aseprite in
-/// bevy ui. This is intended to be used for static Sprite Atlases.
-/// This bundle can be added to any ui node, that contains an `UiImage`
-#[derive(Bundle, Default)]
-pub struct AsepriteSliceUiBundle {
-    pub slice: AsepriteSlice,
-    pub aseprite: AsepriteHandle,
-    pub not_loaded: NotLoaded,
-    pub ui_tag: UiTag,
+/// Displays a aseprite atlas slice
+/// on a sprite entity.
+#[derive(Component, Reflect, Default, Debug, Clone)]
+#[require(Sprite)]
+#[reflect]
+pub struct AseSpriteSlice {
+    pub name: String,
+    pub aseprite: Handle<Aseprite>,
 }
 
-/// The `AsepriteSlice` component is used to specify which slice of an aseprite should be rendered.
-/// If the slice is not found in the aseprite file, the game will panic.
-#[derive(Component, Default, Reflect)]
-pub struct AsepriteSlice(String);
-
-impl AsepriteSlice {
-    pub fn new(name: &str) -> Self {
-        Self(name.to_string())
-    }
-}
-
-impl From<&str> for AsepriteSlice {
-    fn from(name: &str) -> Self {
-        Self::new(name)
-    }
-}
-
-fn insert_aseprite_slice(
+fn update_aseprite_ui_slice(
     mut cmd: Commands,
-    mut query: Query<
-        (
-            Entity,
-            &mut Sprite,
-            &AsepriteSlice,
-            &AsepriteHandle,
-            Option<&UiTag>,
-        ),
-        Or<(With<NotLoaded>, Changed<AsepriteSlice>)>,
-    >,
+    mut nodes: Query<(Entity, &mut UiImage, &AseUiSlice), Without<FullyLoaded>>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
-    query
-        .iter_mut()
-        .for_each(|(entity, mut sprite, slice, handle, maybe_ui)| {
-            let Some(aseprite) = aseprites.get(&**handle) else {
-                return;
-            };
+    for (entity, mut image, slice) in nodes.iter_mut() {
+        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
+            continue;
+        };
 
-            let slice_meta = aseprite
-                .slices
-                .get(&slice.0)
-                .expect(format!("Slice {} not found in {:?}", slice.0, handle).as_str());
+        let Some(slice) = aseprite.slices.get(&slice.name) else {
+            warn!("slice does not extists {}", slice.name);
+            continue;
+        };
 
-            sprite.texture_atlas = Some(TextureAtlas {
-                layout: aseprite.atlas_layout.clone(),
-                index: slice_meta.atlas_id,
+        image.image = aseprite.atlas_image.clone();
+        image.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: slice.atlas_id,
+        });
+
+        cmd.entity(entity).insert(FullyLoaded);
+    }
+}
+
+fn update_aseprite_sprite_slice(
+    mut cmd: Commands,
+    mut nodes: Query<(Entity, &mut Sprite, &AseUiSlice), Without<FullyLoaded>>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (entity, mut sprite, slice) in nodes.iter_mut() {
+        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
+            continue;
+        };
+
+        let Some(slice) = aseprite.slices.get(&slice.name) else {
+            warn!("slice does not extists {}", slice.name);
+            continue;
+        };
+
+        sprite.anchor = Anchor::from(slice);
+        sprite.image = aseprite.atlas_image.clone();
+        sprite.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: slice.atlas_id,
+        });
+
+        cmd.entity(entity).insert(FullyLoaded);
+    }
+}
+
+fn hotreload_ui_slice(
+    mut cmd: Commands,
+    mut events: EventReader<AssetEvent<Aseprite>>,
+    ui_slices: Query<(Entity, &AseUiSlice), With<FullyLoaded>>,
+    sprite_slices: Query<(Entity, &AseSpriteSlice), With<FullyLoaded>>,
+) {
+    for event in events.read() {
+        let AssetEvent::LoadedWithDependencies { id } = event else {
+            continue;
+        };
+
+        ui_slices
+            .iter()
+            .filter(|(_, slice)| slice.aseprite.id() == *id)
+            .for_each(|(entity, _)| {
+                cmd.entity(entity).remove::<FullyLoaded>();
             });
 
-            if let Some(mut cmd) = cmd.get_entity(entity) {
-                match maybe_ui {
-                    Some(_) => {
-                        cmd.remove::<NotLoaded>()
-                            .insert((UiImage::new(aseprite.atlas_image.clone()),));
-                    }
-                    None => {
-                        cmd.remove::<NotLoaded>();
-                        sprite.image = aseprite.atlas_image.clone();
-                        sprite.anchor = Anchor::from(slice_meta);
-                    }
-                }
-            };
-        });
+        sprite_slices
+            .iter()
+            .filter(|(_, slice)| slice.aseprite.id() == *id)
+            .for_each(|(entity, _)| {
+                cmd.entity(entity).remove::<FullyLoaded>();
+            });
+    }
 }

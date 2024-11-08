@@ -15,69 +15,76 @@ fn main() {
 fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite").into(),
-        animation: Animation::default().with_tag("walk-right"),
-        transform: Transform::from_translation(Vec3::new(15., 0., 0.)),
-        ..default()
-    });
+    cmd.spawn((
+        AseSpriteAnimation {
+            animation: Animation::tag("walk-right"),
+            aseprite: server.load("player.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(15., 0., 0.)),
+    ));
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite").into(),
-        animation: Animation::default().with_tag("walk-up").with_speed(0.5),
-        transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
-        ..default()
-    });
+    cmd.spawn((
+        AseSpriteAnimation {
+            animation: Animation::tag("walk-up"),
+            aseprite: server.load("player.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(0., 0., 0.)),
+    ));
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite").into(),
-        animation: Animation::default().with_tag("walk-down"),
-        transform: Transform::from_translation(Vec3::new(-15., 0., 0.)),
-        ..default()
-    });
+    cmd.spawn((
+        AseSpriteAnimation {
+            animation: Animation::tag("walk-down"),
+            aseprite: server.load("player.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(-15., 0., 0.)),
+    ));
+    cmd.spawn((
+        AseSpriteAnimation {
+            animation: Animation::default().with_direction(AnimationDirection::Reverse),
+            aseprite: server.load("player.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(0., -20., 0.)),
+    ));
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite").into(),
-        transform: Transform::from_translation(Vec3::new(0., -20., 0.)),
-        animation: Animation::default().with_direction(AnimationDirection::Reverse),
-        ..default()
-    });
-
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("player.aseprite").into(),
-        transform: Transform::from_translation(Vec3::new(15., -20., 0.)),
-        animation: Animation::default().with_tag("walk-right"),
-        sprite: Sprite {
+    cmd.spawn((
+        AseSpriteAnimation {
+            animation: Animation::tag("walk-right"),
+            aseprite: server.load("player.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(15., -20., 0.)),
+        Sprite {
             flip_x: true,
             ..default()
         },
-        ..default()
-    });
+    ));
 
-    cmd.spawn(AsepriteAnimationBundle {
-        aseprite: server.load("ball.aseprite").into(),
-        animation: Animation::default().with_tag("squash"),
-        transform: Transform::from_translation(Vec3::new(0., 20., 0.)),
-        ..default()
-    });
+    cmd.spawn((
+        AseSpriteAnimation {
+            animation: Animation::default().with_tag("squash"),
+            aseprite: server.load("ball.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(0., 20., 0.)),
+    ));
 
-    cmd.spawn(AsepriteSliceBundle {
-        slice: "ghost_red".into(),
-        aseprite: server.load("ghost_slices.aseprite").into(),
-        transform: Transform::from_translation(Vec3::new(50., 0., 0.)),
-        ..Default::default()
-    });
+    cmd.spawn((
+        AseSpriteSlice {
+            name: "ghost_red".into(),
+            aseprite: server.load("ball.aseprite"),
+        },
+        Transform::from_translation(Vec3::new(50., 0., 0.)),
+    ));
 
-    cmd.spawn(AsepriteSliceBundle {
-        slice: "ghost_blue".into(),
-        sprite: Sprite {
+    cmd.spawn((
+        AseSpriteSlice {
+            name: "ghost_blue".into(),
+            aseprite: server.load("ball.aseprite"),
+        },
+        Sprite {
             flip_x: true,
             ..default()
         },
-        aseprite: server.load("ghost_slices.aseprite").into(),
-        transform: Transform::from_translation(Vec3::new(80., 0., 0.)),
-        ..Default::default()
-    });
+        Transform::from_translation(Vec3::new(80., 0., 0.)),
+    ));
 }
 
 fn events(mut events: EventReader<AnimationEvents>, mut cmd: Commands) {

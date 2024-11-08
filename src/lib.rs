@@ -8,14 +8,17 @@ pub(crate) mod slice;
 
 pub mod prelude {
     pub use crate::animation::{
-        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AsepriteAnimationBundle,
-        AsepriteAnimationUiBundle,
+        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AseSpriteAnimation,
+        AseUiAnimation, PlayDirection,
     };
-    pub use crate::loader::{Aseprite, AsepriteHandle};
-    pub use crate::slice::{AsepriteSlice, AsepriteSliceBundle, AsepriteSliceUiBundle};
+    pub use crate::loader::Aseprite;
+    pub use crate::slice::{AseSpriteSlice, AseUiSlice};
     pub use crate::AsepriteUltraPlugin;
 }
 
+/// Aseprite Ultra Plugin
+///
+///
 pub struct AsepriteUltraPlugin;
 impl Plugin for AsepriteUltraPlugin {
     fn build(&self, app: &mut App) {
@@ -25,10 +28,6 @@ impl Plugin for AsepriteUltraPlugin {
     }
 }
 
-/// tags a bundle as ui node
+/// tag component to ensure,
 #[derive(Component, Default)]
-pub struct UiTag;
-
-/// tags an entity as not yet loaded;
-#[derive(Component, Default)]
-pub struct NotLoaded;
+pub(crate) struct FullyLoaded;

@@ -1,4 +1,4 @@
-use crate::{error::AsepriteError, NotLoaded};
+use crate::error::AsepriteError;
 use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
     asset::{io::Reader, AssetLoader},
@@ -17,13 +17,12 @@ impl Plugin for AsepriteLoaderPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<Aseprite>();
         app.register_asset_loader(AsepriteLoader);
-        app.add_systems(
-            Update,
-            rebuild_on_reload.run_if(on_event::<AssetEvent<Aseprite>>),
-        );
     }
 }
 
+//@todo: if this can be serialized, we basicly have a intermediate binary
+//represantion and can make use of the asset prepocessor. No longer need
+//to ship or bundle aseprite binaries into your release.
 #[derive(Asset, Default, TypePath, Debug)]
 pub struct Aseprite {
     pub slices: HashMap<String, SliceMeta>,
@@ -34,24 +33,11 @@ pub struct Aseprite {
     frame_indicies: Vec<usize>,
 }
 
-#[derive(Component, Default, Debug, Reflect, Clone, Deref, DerefMut)]
-#[reflect]
-pub struct AsepriteHandle(pub Handle<Aseprite>);
-
-impl From<Handle<Aseprite>> for AsepriteHandle {
-    fn from(value: Handle<Aseprite>) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&Handle<Aseprite>> for AsepriteHandle {
-    fn from(value: &Handle<Aseprite>) -> Self {
-        Self(value.clone())
-    }
-}
-
 impl Aseprite {
     pub fn get_atlas_index(&self, frame: usize) -> usize {
+        if self.frame_indicies.len() <= frame {
+            return self.frame_indicies.last().cloned().unwrap_or_default();
+        }
         self.frame_indicies[frame]
     }
 }
@@ -221,25 +207,4 @@ impl AssetLoader for AsepriteLoader {
     fn extensions(&self) -> &[&str] {
         &["aseprite", "ase"]
     }
-}
-
-/// trigger rebuild on aseprite entities when the asset is reloaded
-fn rebuild_on_reload(
-    aseprite_entites: Query<(Entity, &AsepriteHandle), Without<NotLoaded>>,
-    mut events: EventReader<AssetEvent<Aseprite>>,
-    mut cmd: Commands,
-) {
-    events.read().for_each(|event| match event {
-        AssetEvent::LoadedWithDependencies { id } => {
-            aseprite_entites
-                .iter()
-                .filter(|(_, handle)| handle.id() == *id)
-                .for_each(|(entity, _)| {
-                    if let Some(mut cmd) = cmd.get_entity(entity) {
-                        cmd.insert(NotLoaded);
-                    }
-                });
-        }
-        _ => {}
-    });
 }

@@ -2,7 +2,7 @@
 
 -   updated to bevy 0.15
 -   changed plugin name to `AsepriteUltraPlugin`.
--   `Handle<Aseprite>` changed to `AsepriteHandle`
+-   removed bundles, switched to required components.
 -   added `thiserror`.
 -   removed `anyhow`.
 
