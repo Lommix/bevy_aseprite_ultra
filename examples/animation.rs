@@ -38,6 +38,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
         },
         Transform::from_translation(Vec3::new(-15., 0., 0.)),
     ));
+
     cmd.spawn((
         AseSpriteAnimation {
             animation: Animation::default().with_direction(AnimationDirection::Reverse),
@@ -69,7 +70,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         AseSpriteSlice {
             name: "ghost_red".into(),
-            aseprite: server.load("ball.aseprite"),
+            aseprite: server.load("ghost_slices.aseprite"),
         },
         Transform::from_translation(Vec3::new(50., 0., 0.)),
     ));
@@ -77,7 +78,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         AseSpriteSlice {
             name: "ghost_blue".into(),
-            aseprite: server.load("ball.aseprite"),
+            aseprite: server.load("ghost_slices.aseprite"),
         },
         Sprite {
             flip_x: true,

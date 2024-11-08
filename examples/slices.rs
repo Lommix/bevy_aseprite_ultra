@@ -17,7 +17,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         AseSpriteSlice {
             name: "ghost_red".into(),
-            aseprite: server.load("ball.aseprite"),
+            aseprite: server.load("ghost_slices.aseprite"),
         },
         Transform::from_translation(Vec3::new(0., 0., 0.))
             .with_rotation(Quat::from_rotation_z(0.2)),
@@ -26,7 +26,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         AseSpriteSlice {
             name: "ghost_blue".into(),
-            aseprite: server.load("ball.aseprite"),
+            aseprite: server.load("ghost_slices.aseprite"),
         },
         Sprite {
             flip_x: true,

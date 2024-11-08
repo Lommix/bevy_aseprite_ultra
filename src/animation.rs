@@ -25,7 +25,7 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Clone, Debug)]
 #[require(Sprite, AnimationState)]
 #[reflect]
 pub struct AseSpriteAnimation {
@@ -33,7 +33,7 @@ pub struct AseSpriteAnimation {
     pub aseprite: Handle<Aseprite>,
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Clone, Debug)]
 #[require(UiImage, AnimationState)]
 #[reflect]
 pub struct AseUiAnimation {
@@ -41,7 +41,7 @@ pub struct AseUiAnimation {
     pub aseprite: Handle<Aseprite>,
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect]
 pub struct Animation {
     pub tag: Option<String>,
@@ -161,7 +161,7 @@ pub enum AnimationEvents {
     LoopCycleFinished(Entity),
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Clone, Reflect, Debug)]
 #[reflect]
 pub enum AnimationDirection {
     #[default]
@@ -183,7 +183,7 @@ impl From<RawDirection> for AnimationDirection {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Debug, Clone, Reflect)]
 #[reflect]
 pub enum AnimationRepeat {
     #[default]
@@ -235,6 +235,7 @@ fn load_animation_settings(
 ) {
     for (entity, mut animation) in ui_animations.iter_mut() {
         let Some(tag_str) = animation.animation.tag.as_ref() else {
+            cmd.entity(entity).insert(FullyLoaded);
             continue;
         };
 
@@ -253,6 +254,7 @@ fn load_animation_settings(
 
     for (entity, mut animation) in sprite_animations.iter_mut() {
         let Some(tag_str) = animation.animation.tag.as_ref() else {
+            cmd.entity(entity).insert(FullyLoaded);
             continue;
         };
 
@@ -397,6 +399,7 @@ fn update_animation_state(
     return FrameTransition::None;
 }
 
+#[derive(Debug)]
 enum FrameTransition {
     None,
     AnimationFinished,
@@ -411,7 +414,7 @@ fn next_frame(
     match animation.direction {
         AnimationDirection::Forward => {
             let next = state.current_frame + 1;
-            if next >= animation_range.end {
+            if next > animation_range.end {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = animation_range.start;
@@ -431,8 +434,12 @@ fn next_frame(
             }
         }
         AnimationDirection::Reverse => {
-            let next = state.current_frame.checked_sub(1).unwrap_or(0);
-            if next < animation_range.start {
+            let next = state
+                .current_frame
+                .checked_sub(1)
+                .unwrap_or(animation_range.end);
+
+            if next == animation_range.end {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = animation_range.end - 1;
