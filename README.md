@@ -62,7 +62,7 @@ use bevy_aseprite_ultra::prelude::*;
 fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn((
         AseSpriteAnimation {
-            aseprite: server.load("player.aseprite").into(),
+            aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right")
                 .with_speed(2.)
                 // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
@@ -117,7 +117,7 @@ There is also an Ui Bundle for Bevy Ui Nodes!
 cmd.spawn((
         Button,
         AseUiAnimation {
-            aseprite: server.load("player.aseprite").into(),
+            aseprite: server.load("player.aseprite"),
             animation: Animation::default().with_tag("walk-right"),
         },
 ));
