@@ -12,8 +12,6 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 |         0.14 |          0.2.4 |
 |         0.13 |          0.1.0 |
 
-I use it in my game, check it out on my [blog](https://lommix.com)
-
 ## Supported aseprite features
 
 -   Animations
@@ -32,6 +30,11 @@ I use it in my game, check it out on my [blog](https://lommix.com)
 
 (hot reloading requires the `file_watcher` feature in bevy)
 
+## Embedding Assets
+
+There is currently no asset preprocessor. If you do not want to ship raw aseprite files, use [`bevy_embedded_assets`](https://github.com/vleue/bevy_embedded_assets)
+to embed your assets into a final binary.
+
 ## Example
 
 ```bash
@@ -46,11 +49,9 @@ cargo run --example ui
 
 ---
 
-
 **!Big Change!**
 
 With bevy 0.15 `required components` landed. These are awesome and make the syntax super sexy and concise.
-
 
 ```rust
 use bevy::prelude::*;
