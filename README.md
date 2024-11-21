@@ -33,7 +33,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 ## Embedding Assets
 
 There is currently no asset preprocessor. If you do not want to ship raw aseprite files, use [`bevy_embedded_assets`](https://github.com/vleue/bevy_embedded_assets)
-to embed your assets into a final binary.
+to embed your assets into the final binary.
 
 ## Example
 

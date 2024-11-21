@@ -1,4 +1,7 @@
-#[allow(unused)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![allow(rustdoc::redundant_explicit_links)]
+#![doc = include_str!("../README.md")]
+
 use bevy::prelude::*;
 
 pub(crate) mod animation;
@@ -20,7 +23,7 @@ pub mod prelude {
 ///
 /// Quick guide:
 ///
-/// add to game
+/// add the plugin to your game
 /// ```rust
 /// fn main() {
 ///     App::new()
@@ -58,6 +61,7 @@ pub mod prelude {
 ///         aseprite: server.load("ghost_slices.aseprite"),
 ///     });
 /// }
+///
 /// ```
 pub struct AsepriteUltraPlugin;
 impl Plugin for AsepriteUltraPlugin {
