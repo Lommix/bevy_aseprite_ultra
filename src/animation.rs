@@ -44,7 +44,7 @@ pub struct AseSpriteAnimation {
 /// Create a UI Node using a Aseprite Animation.
 /// It's an `UiImage` with some extra steps.
 #[derive(Component, Reflect, Default, Clone, Debug)]
-#[require(UiImage, AnimationState)]
+#[require(ImageNode, AnimationState)]
 #[reflect]
 pub struct AseUiAnimation {
     pub animation: Animation,
@@ -72,7 +72,7 @@ trait AseAnimation: Component {
 }
 
 impl AseAnimation for AseUiAnimation {
-    type Target = UiImage;
+    type Target = ImageNode;
 
     fn aseprite(&self) -> &Handle<Aseprite> {
         &self.aseprite

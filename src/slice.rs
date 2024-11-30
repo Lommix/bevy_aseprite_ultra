@@ -19,7 +19,7 @@ impl Plugin for AsepriteSlicePlugin {
 /// Displays a aseprite atlas slice
 /// on an UI entity.
 #[derive(Component, Reflect, Default, Debug, Clone)]
-#[require(UiImage)]
+#[require(ImageNode)]
 #[reflect]
 pub struct AseUiSlice {
     pub name: String,
@@ -38,7 +38,7 @@ pub struct AseSpriteSlice {
 
 fn update_aseprite_ui_slice(
     mut cmd: Commands,
-    mut nodes: Query<(Entity, &mut UiImage, &AseUiSlice), Without<FullyLoaded>>,
+    mut nodes: Query<(Entity, &mut ImageNode, &AseUiSlice), Without<FullyLoaded>>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (entity, mut image, slice) in nodes.iter_mut() {

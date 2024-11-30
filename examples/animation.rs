@@ -1,10 +1,10 @@
-use bevy::prelude::*;
+use bevy::{image::ImageSamplerDescriptor, prelude::*};
 use bevy_aseprite_ultra::prelude::*;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin {
-            default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
+            default_sampler: ImageSamplerDescriptor::nearest(),
         }))
         .add_plugins(AsepriteUltraPlugin)
         .add_systems(Startup, setup)
