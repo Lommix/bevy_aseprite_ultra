@@ -38,7 +38,10 @@ pub struct AseSpriteSlice {
 
 fn update_aseprite_ui_slice(
     mut cmd: Commands,
-    mut nodes: Query<(Entity, &mut ImageNode, &AseUiSlice), Without<FullyLoaded>>,
+    mut nodes: Query<
+        (Entity, &mut ImageNode, &AseUiSlice),
+        Or<(Without<FullyLoaded>, Changed<AseUiSlice>)>,
+    >,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (entity, mut image, slice) in nodes.iter_mut() {
@@ -63,7 +66,10 @@ fn update_aseprite_ui_slice(
 
 fn update_aseprite_sprite_slice(
     mut cmd: Commands,
-    mut nodes: Query<(Entity, &mut Sprite, &AseSpriteSlice), Without<FullyLoaded>>,
+    mut nodes: Query<
+        (Entity, &mut Sprite, &AseSpriteSlice),
+        Or<(Without<FullyLoaded>, Changed<AseSpriteSlice>)>,
+    >,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (entity, mut sprite, slice) in nodes.iter_mut() {
