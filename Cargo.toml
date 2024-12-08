@@ -1,6 +1,6 @@
 [package]
 name = "bevy_aseprite_ultra"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Lorenz Mielke"]
 description = "A Bevy plugin for directly loading spritesheets and animations from aseprite binary files with hot reloading support."
@@ -11,10 +11,10 @@ readme = "README.md"
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = [
-  "basis-universal",
   "bevy_sprite",
   "bevy_asset",
   "bevy_ui",
+  "png",
 ] }
 aseprite-loader = "0.3.3"
 uuid = "1.9.1"
