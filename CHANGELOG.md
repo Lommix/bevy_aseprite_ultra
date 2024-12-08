@@ -1,3 +1,7 @@
+## 0.3.3
+
+- new animation now correctly start at the tag start frame.
+
 ## 0.3.2
 
 - replaced `basic-universl` with `png` feature.
