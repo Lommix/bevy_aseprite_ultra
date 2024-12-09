@@ -435,9 +435,9 @@ fn update_animation_state(
 
     let range = maybe_tag
         .map(|t| *t.range.start()..*t.range.end())
-        .unwrap_or(0..aseprite.frame_durations.len() as u16);
+        .unwrap_or(0..(aseprite.frame_durations.len() - 1) as u16);
 
-    if !range.contains(&state.current_frame) {
+    if state.current_frame < range.start {
         state.current_frame = range.start;
     }
     state.elapsed += std::time::Duration::from_secs_f32(delta_secs);
