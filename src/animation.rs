@@ -1,26 +1,23 @@
 use crate::{loader::Aseprite, FullyLoaded};
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::prelude::*;
-use std::{collections::VecDeque, ops::Range};
+use std::collections::VecDeque;
 
 pub struct AsepriteAnimationPlugin;
 impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
-        app.add_event::<FrameChangedEvent>();
+        app.add_event::<NextFrameEvent>();
         app.add_systems(
             Update,
             (
                 update_aseprite_sprite_animation::<AseSpriteAnimation>,
                 update_aseprite_sprite_animation::<AseUiAnimation>,
-                load_animation_settings::<AseSpriteAnimation>,
-                load_animation_settings::<AseUiAnimation>,
-                hotreload_animations.run_if(on_event::<AssetEvent<Aseprite>>),
             ),
         );
 
-        app.add_observer(update_render::<AseSpriteAnimation>);
-        app.add_observer(update_render::<AseUiAnimation>);
+        app.add_observer(next_frame::<AseSpriteAnimation>);
+        app.add_observer(next_frame::<AseUiAnimation>);
 
         app.register_type::<AseSpriteAnimation>();
         app.register_type::<AseUiAnimation>();
@@ -63,12 +60,7 @@ trait AseAnimation: Component {
     fn aseprite(&self) -> &Handle<Aseprite>;
     fn animation(&self) -> &Animation;
     fn animation_mut(&mut self) -> &mut Animation;
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-    );
+    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite);
 }
 
 impl AseAnimation for AseUiAnimation {
@@ -86,12 +78,7 @@ impl AseAnimation for AseUiAnimation {
         &mut self.animation
     }
 
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-    ) {
+    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
         target.image = aseprite.atlas_image.clone();
         target.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -114,12 +101,7 @@ impl AseAnimation for AseSpriteAnimation {
         &mut self.animation
     }
 
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-    ) {
+    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
         target.image = aseprite.atlas_image.clone();
         target.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -128,14 +110,15 @@ impl AseAnimation for AseSpriteAnimation {
     }
 }
 
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Debug, Clone, Reflect)]
 #[reflect]
 pub struct Animation {
     pub tag: Option<String>,
     pub speed: f32,
     pub playing: bool,
     pub repeat: AnimationRepeat,
-    pub direction: AnimationDirection,
+    // overwrite aseprite direction
+    pub direction: Option<AnimationDirection>,
     pub queue: VecDeque<(String, AnimationRepeat)>,
 }
 
@@ -146,7 +129,7 @@ impl Default for Animation {
             speed: 1.0,
             playing: false,
             repeat: AnimationRepeat::Loop,
-            direction: AnimationDirection::Forward,
+            direction: None,
             queue: VecDeque::new(),
         }
     }
@@ -176,21 +159,14 @@ impl Animation {
         self
     }
 
-    /// provides an animation direction, maybe overwritten by aseprite tag
-    pub fn with_direction(
-        mut self,
-        direction: AnimationDirection,
-    ) -> Self {
-        self.direction = direction;
+    /// provides an animation direction, overwrites aseprite direction
+    pub fn with_direction(mut self, direction: AnimationDirection) -> Self {
+        self.direction = Some(direction);
         self
     }
 
     /// chains an animation after the current one is done
-    pub fn with_then(
-        mut self,
-        tag: &str,
-        repeats: AnimationRepeat,
-    ) -> Self {
+    pub fn with_then(mut self, tag: &str, repeats: AnimationRepeat) -> Self {
         self.queue.push_back((tag.to_string(), repeats));
         self
     }
@@ -223,7 +199,7 @@ impl From<&str> for Animation {
     }
 }
 
-#[derive(Component, Default, Reflect)]
+#[derive(Component, Debug, Default, Reflect)]
 #[reflect]
 pub struct AnimationState {
     /// carefull, changing the frame out of bounds
@@ -240,7 +216,7 @@ impl AnimationState {
     }
 }
 
-#[derive(Default, Reflect)]
+#[derive(Default, Debug, Reflect)]
 #[reflect]
 pub enum PlayDirection {
     #[default]
@@ -271,9 +247,7 @@ impl From<RawDirection> for AnimationDirection {
             RawDirection::Forward => AnimationDirection::Forward,
             RawDirection::Reverse => AnimationDirection::Reverse,
             RawDirection::PingPong => AnimationDirection::PingPong,
-            RawDirection::PingPongReverse => {
-                AnimationDirection::PingPongReverse
-            }
+            RawDirection::PingPongReverse => AnimationDirection::PingPongReverse,
             _ => panic!("Invalid AnimationDirection"),
         }
     }
@@ -296,254 +270,149 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-fn hotreload_animations(
-    mut cmd: Commands,
-    mut events: EventReader<AssetEvent<Aseprite>>,
-    ui_animations: Query<
-        (Entity, &AseUiAnimation),
-        With<FullyLoaded>,
-    >,
-    sprite_animations: Query<
-        (Entity, &AseSpriteAnimation),
-        With<FullyLoaded>,
-    >,
-) {
-    for event in events.read() {
-        let AssetEvent::LoadedWithDependencies { id } = event else {
-            continue;
-        };
-
-        ui_animations
-            .iter()
-            .filter(|(_, slice)| slice.aseprite.id() == *id)
-            .for_each(|(entity, _)| {
-                cmd.entity(entity).remove::<FullyLoaded>();
-            });
-
-        sprite_animations
-            .iter()
-            .filter(|(_, slice)| slice.aseprite.id() == *id)
-            .for_each(|(entity, _)| {
-                cmd.entity(entity).remove::<FullyLoaded>();
-            });
-    }
-}
-
-fn load_animation_settings<T: AseAnimation>(
-    mut cmd: Commands,
-    mut animations: Query<(Entity, &mut T), Without<FullyLoaded>>,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    for (entity, mut animation) in animations.iter_mut() {
-        let Some(tag_str) = animation.animation().tag.as_ref() else {
-            cmd.entity(entity).insert(FullyLoaded);
-            continue;
-        };
-
-        let Some(aseprite) = aseprites.get(animation.aseprite())
-        else {
-            continue;
-        };
-
-        cmd.entity(entity).insert(FullyLoaded);
-
-        let Some(tag) = aseprite.tags.get(tag_str) else {
-            continue;
-        };
-
-        animation.animation_mut().direction =
-            AnimationDirection::from(tag.direction);
-    }
-}
-
 fn update_aseprite_sprite_animation<T: AseAnimation>(
     mut cmd: Commands,
-    mut events: EventWriter<AnimationEvents>,
-    mut animations: Query<
-        (Entity, &mut T, &mut AnimationState),
-        Without<ManualTick>,
-    >,
+    mut animations: Query<(
+        Entity,
+        &mut T,
+        &mut AnimationState,
+        &mut T::Target,
+        Has<ManualTick>,
+    )>,
     aseprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
 ) {
-    for (entity, mut animation, mut state) in animations.iter_mut() {
-        let Some(aseprite) = aseprites.get(animation.aseprite())
+    for (entity, animation, mut state, mut target, is_manual) in animations.iter_mut() {
+        let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+            continue;
+        };
+
+        let range = match animation.animation().tag.as_ref() {
+            Some(tag) => aseprite
+                .tags
+                .get(tag)
+                .map(|meta| meta.range.clone())
+                .unwrap(),
+            None => 0..=(aseprite.frame_durations.len() as u16 - 1),
+        };
+
+        // has to check start and end! because hot reloading can cause
+        // animations to be outside of the animation range
+        if !range.contains(&state.current_frame) {
+            state.current_frame = *range.start();
+        }
+
+        animation.render(&mut target, state.current_frame, aseprite);
+
+        if is_manual {
+            return;
+        }
+
+        state.elapsed += time.delta();
+
+        let Some(frame_duration) = aseprite
+            .frame_durations
+            .get(usize::from(state.current_frame))
         else {
             continue;
         };
 
-        let transition = update_animation_state(
-            &mut animation.animation_mut(),
-            &mut state,
-            &aseprite,
-            time.delta_secs(),
-        );
-
-        match transition {
-            AnimationTransition::AnimationFinished => {
-                events.send(AnimationEvents::Finished(entity));
-                cmd.trigger_targets(FrameChangedEvent, entity);
-            }
-            AnimationTransition::AnimationLoopFinished => {
-                events
-                    .send(AnimationEvents::LoopCycleFinished(entity));
-                cmd.trigger_targets(FrameChangedEvent, entity);
-            }
-            AnimationTransition::FrameTransition => {
-                cmd.trigger_targets(FrameChangedEvent, entity);
-            }
-            _ => (),
+        if state.elapsed > *frame_duration {
+            cmd.trigger_targets(NextFrameEvent, entity);
+            state.elapsed = std::time::Duration::ZERO;
         }
     }
 }
 
-/// triggers on frame change.
 #[derive(Event)]
-pub struct FrameChangedEvent;
+pub struct NextFrameEvent;
 
-fn update_render<T: AseAnimation>(
-    trigger: Trigger<FrameChangedEvent>,
-    mut animations: Query<
-        (&AnimationState, &T, &mut T::Target),
-        Without<ManualTick>,
-    >,
+fn next_frame<T: AseAnimation>(
+    trigger: Trigger<NextFrameEvent>,
+    mut events: EventWriter<AnimationEvents>,
+    mut animations: Query<(&mut AnimationState, &mut T)>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
-    let Ok((state, animation, mut target)) =
-        animations.get_mut(trigger.entity())
-    else {
+    let Ok((mut state, mut ase)) = animations.get_mut(trigger.entity()) else {
         return;
     };
 
-    let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+    let Some(aseprite) = aseprites.get(ase.aseprite()) else {
         return;
     };
-    animation.render(&mut target, state.current_frame, aseprite);
-}
 
-fn update_animation_state(
-    animation: &mut Animation,
-    state: &mut AnimationState,
-    aseprite: &Aseprite,
-    delta_secs: f32,
-) -> AnimationTransition {
-    let maybe_tag = animation
+    let animation = ase.animation_mut();
+
+    let (range, direction) = match animation
         .tag
         .as_ref()
         .map(|t| aseprite.tags.get(t))
-        .flatten();
-
-    let range = maybe_tag
-        .map(|t| *t.range.start()..*t.range.end())
-        .unwrap_or(0..(aseprite.frame_durations.len() - 1) as u16);
-
-    if state.current_frame < range.start {
-        state.current_frame = range.start;
-    }
-    state.elapsed += std::time::Duration::from_secs_f32(delta_secs);
-
-    let Some(frame_duration) = aseprite
-        .frame_durations
-        .get(usize::from(state.current_frame))
-    else {
-        return AnimationTransition::None;
+        .flatten()
+    {
+        Some(meta) => {
+            let dir = animation
+                .direction
+                .clone()
+                .unwrap_or(AnimationDirection::from(meta.direction));
+            (meta.range.clone(), dir)
+        }
+        None => {
+            let dir = animation
+                .direction
+                .clone()
+                .unwrap_or(AnimationDirection::Forward);
+            (0..=(aseprite.frame_durations.len() as u16 - 1), dir)
+        }
     };
 
-    if state.elapsed > *frame_duration {
-        let transition = next_frame(state, animation, range);
-        if let AnimationTransition::AnimationFinished = transition {
-            match animation.queue.pop_front() {
-                Some((tag, repeat)) => {
-                    animation.tag = Some(tag);
-                    animation.repeat = repeat;
-                }
-                None => {
-                    animation.playing = false;
-                }
-            };
-        }
-        state.elapsed = std::time::Duration::ZERO;
-        return transition;
-    }
-
-    return AnimationTransition::None;
-}
-
-#[derive(Debug)]
-enum AnimationTransition {
-    None,
-    FrameTransition,
-    AnimationFinished,
-    AnimationLoopFinished,
-}
-
-fn next_frame(
-    state: &mut AnimationState,
-    animation: &mut Animation,
-    animation_range: Range<u16>,
-) -> AnimationTransition {
-    match animation.direction {
+    match direction {
         AnimationDirection::Forward => {
             let next = state.current_frame + 1;
-            if next > animation_range.end {
+            if next > *range.end() {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
-                        state.current_frame = animation_range.start;
-                        return AnimationTransition::AnimationLoopFinished;
+                        state.current_frame = *range.start();
+                        events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
-                            state.current_frame =
-                                animation_range.start;
-                            animation.repeat =
-                                AnimationRepeat::Count(count - 1);
-                            return AnimationTransition::FrameTransition;
+                            state.current_frame = *range.start();
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return AnimationTransition::AnimationFinished;
+                            events.send(AnimationEvents::Finished(trigger.entity()));
                         }
                     }
                 }
             } else {
                 state.current_frame = next;
-                return AnimationTransition::FrameTransition;
             }
         }
         AnimationDirection::Reverse => {
-            let next = state
-                .current_frame
-                .checked_sub(1)
-                .unwrap_or(animation_range.end);
+            let next = state.current_frame.checked_sub(1).unwrap_or(*range.end());
 
-            if next == animation_range.end {
+            if next == *range.end() {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
-                        state.current_frame = animation_range.end - 1;
-                        return AnimationTransition::AnimationLoopFinished;
+                        state.current_frame = range.end() - 1;
+                        events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
-                            state.current_frame =
-                                animation_range.end - 1;
-                            animation.repeat =
-                                AnimationRepeat::Count(count - 1);
-                            return AnimationTransition::FrameTransition;
+                            state.current_frame = range.end() - 1;
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return AnimationTransition::AnimationFinished;
+                            events.send(AnimationEvents::Finished(trigger.entity()));
                         }
                     }
                 }
             } else {
                 state.current_frame = next;
-                return AnimationTransition::FrameTransition;
             }
         }
-        AnimationDirection::PingPong
-        | AnimationDirection::PingPongReverse => {
+        AnimationDirection::PingPong | AnimationDirection::PingPongReverse => {
             let next = match state.current_direction {
                 PlayDirection::Forward => state.current_frame + 1,
-                PlayDirection::Backward => {
-                    state.current_frame.checked_sub(1).unwrap_or(0)
-                }
+                PlayDirection::Backward => state.current_frame.checked_sub(1).unwrap_or(0),
             };
 
             let is_forward = match state.current_direction {
@@ -551,54 +420,43 @@ fn next_frame(
                 PlayDirection::Backward => false,
             };
 
-            if next >= animation_range.end && is_forward {
+            if next >= *range.end() && is_forward {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
-                        state.current_direction =
-                            PlayDirection::Backward;
-                        state.current_frame = animation_range.end - 2;
-                        return AnimationTransition::AnimationLoopFinished;
+                        state.current_direction = PlayDirection::Backward;
+                        state.current_frame = range.end() - 2;
+                        events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
-                            state.current_direction =
-                                PlayDirection::Backward;
-                            state.current_frame =
-                                animation_range.end - 2;
-                            animation.repeat =
-                                AnimationRepeat::Count(count - 1);
-                            return AnimationTransition::FrameTransition;
+                            state.current_direction = PlayDirection::Backward;
+                            state.current_frame = range.end() - 2;
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return AnimationTransition::AnimationFinished;
+                            events.send(AnimationEvents::Finished(trigger.entity()));
                         }
                     }
                 };
-            } else if next <= animation_range.start && !is_forward {
+            } else if next <= *range.start() && !is_forward {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
-                        state.current_direction =
-                            PlayDirection::Forward;
-                        state.current_frame = animation_range.start;
-                        return AnimationTransition::AnimationLoopFinished;
+                        state.current_direction = PlayDirection::Forward;
+                        state.current_frame = *range.start();
+                        events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
-                            state.current_direction =
-                                PlayDirection::Forward;
-                            state.current_frame =
-                                animation_range.start;
-                            animation.repeat =
-                                AnimationRepeat::Count(count - 1);
+                            state.current_direction = PlayDirection::Forward;
+                            state.current_frame = *range.start();
+                            animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            return AnimationTransition::AnimationFinished;
+                            events.send(AnimationEvents::Finished(trigger.entity()));
                         }
                     }
                 };
             } else {
                 state.current_frame = next;
-                return AnimationTransition::FrameTransition;
             }
         }
     };
-    AnimationTransition::None
 }
