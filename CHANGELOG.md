@@ -1,3 +1,10 @@
+## 0.4.0
+
+- fixed speed multiplier
+- (internal) decoupled next frame logic
+- new manual example
+- new `NextFrameEvent` to progress animations with custom logic.
+
 ## 0.3.3
 
 - new animation now correctly start at the tag start frame.
