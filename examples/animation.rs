@@ -41,7 +41,9 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
     cmd.spawn((
         AseSpriteAnimation {
-            animation: Animation::default().with_direction(AnimationDirection::Reverse),
+            animation: Animation::default()
+                .with_direction(AnimationDirection::Reverse)
+                .with_repeat(AnimationRepeat::Count(1)),
             aseprite: server.load("player.aseprite"),
         },
         Transform::from_translation(Vec3::new(0., -20., 0.)),

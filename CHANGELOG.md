@@ -1,3 +1,7 @@
+## 0.4.1
+
+- fixed queue system, added example
+
 ## 0.4.0
 
 - fixed speed multiplier

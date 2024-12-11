@@ -8,7 +8,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
-|         0.15 |          0.4.0 |
+|         0.15 |          0.4.1 |
 |         0.14 |          0.2.4 |
 |         0.13 |          0.1.0 |
 
@@ -61,6 +61,7 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
         AseSpriteAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right")
+                .with_repeat(AnimationRepeat::Count(1))
                 .with_speed(2.)
                 // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
                 .with_repeat(AnimationRepeat::Count(42))

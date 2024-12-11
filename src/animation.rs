@@ -194,6 +194,13 @@ impl Animation {
     pub fn clear_queue(&mut self) {
         self.queue.clear()
     }
+
+    fn next(&mut self) {
+        if let Some((tag, repeat)) = self.queue.pop_front() {
+            self.tag = Some(tag);
+            self.repeat = repeat;
+        }
+    }
 }
 
 impl From<&str> for Animation {
@@ -387,7 +394,11 @@ fn next_frame<T: AseAnimation>(
                             state.current_frame = *range.start();
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            events.send(AnimationEvents::Finished(trigger.entity()));
+                            if animation.queue.is_empty() {
+                                events.send(AnimationEvents::Finished(trigger.entity()));
+                            } else {
+                                animation.next();
+                            }
                         }
                     }
                 }
@@ -409,7 +420,11 @@ fn next_frame<T: AseAnimation>(
                             state.current_frame = range.end() - 1;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            events.send(AnimationEvents::Finished(trigger.entity()));
+                            if animation.queue.is_empty() {
+                                events.send(AnimationEvents::Finished(trigger.entity()));
+                            } else {
+                                animation.next();
+                            }
                         }
                     }
                 }
@@ -441,7 +456,11 @@ fn next_frame<T: AseAnimation>(
                             state.current_frame = range.end() - 2;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            events.send(AnimationEvents::Finished(trigger.entity()));
+                            if animation.queue.is_empty() {
+                                events.send(AnimationEvents::Finished(trigger.entity()));
+                            } else {
+                                animation.next();
+                            }
                         }
                     }
                 };
@@ -458,7 +477,11 @@ fn next_frame<T: AseAnimation>(
                             state.current_frame = *range.start();
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
-                            events.send(AnimationEvents::Finished(trigger.entity()));
+                            if animation.queue.is_empty() {
+                                events.send(AnimationEvents::Finished(trigger.entity()));
+                            } else {
+                                animation.next();
+                            }
                         }
                     }
                 };
