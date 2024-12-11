@@ -26,7 +26,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 -   Hot reload anything, anytime, anywhere!
 -   Full control over animations using Components.
 -   One shot animations and events when they finish.
--   Static sprites with slices. Use aseprite for all your icon and ui needs!
+-   Static sprites with slices. Use aseprite for all your icon and UI needs!
 
 (hot reloading requires the `file_watcher` feature in bevy)
 
@@ -49,17 +49,13 @@ cargo run --example ui
 
 ---
 
-**!Big Change!**
-
-With bevy 0.15 `required components` landed. These are awesome and make the syntax super sexy and concise.
-
 ```rust
 use bevy::prelude::*;
 use bevy_aseprite_ultra::prelude::*;
 
 ...
 
-// Load the an animation from an aseprite file
+// Load an animation from an aseprite file
 fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn((
         AseSpriteAnimation {
@@ -68,12 +64,11 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
                 .with_speed(2.)
                 // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
                 .with_repeat(AnimationRepeat::Count(42))
-                // The direction is provided by the asperite config for the tag, but can be overwritten
-                // after the animation is loaded.
+                // The direction is provided by the asperite config for the tag, but can be overwritten.
                 .with_direction(AnimationDirection::PingPong)
                 // you can also chain finite animations, loop animations will never finish
                 .with_then("walk-left", AnimationRepeat::Count(4))
-                .with_then("walk-up", AnimationRepeat::Loop), // you can override the default sprite settings here
+                .with_then("walk-up", AnimationRepeat::Loop),
         },
         Sprite {
             // under the hood its just sprites.
@@ -119,7 +114,7 @@ cmd.spawn((
         Button,
         AseUiAnimation {
             aseprite: server.load("player.aseprite"),
-            animation: Animation::default().with_tag("walk-right"),
+            animation: Animation::tag("walk-right"),
         },
 ));
 
