@@ -54,17 +54,17 @@ fn player_animation(mut animation_query: Query<(&mut AseSpriteAnimation, &Player
     for (mut ase_sprite_animation, player) in animation_query.iter_mut() {
         match player.state {
             PlayerState::Stand => {
-                ase_sprite_animation.animation.tag = Some("idle".into());
+                ase_sprite_animation.animation.play_loop("idle");
             }
             PlayerState::Walk => match player.direction {
                 PlayerDirection::Up => {
-                    ase_sprite_animation.animation.tag = Some(String::from("walk-up"));
+                    ase_sprite_animation.animation.play_loop("walk-up");
                 }
                 PlayerDirection::Down => {
-                    ase_sprite_animation.animation.tag = Some(String::from("walk-down"));
+                    ase_sprite_animation.animation.play_loop("walk-down");
                 }
                 PlayerDirection::Left | PlayerDirection::Right => {
-                    ase_sprite_animation.animation.tag = Some(String::from("walk-right"));
+                    ase_sprite_animation.animation.play_loop("walk-right");
                 }
             },
         }

@@ -1,4 +1,4 @@
-use crate::{loader::Aseprite, FullyLoaded};
+use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::prelude::*;
 use std::collections::VecDeque;
@@ -148,8 +148,8 @@ impl Animation {
     }
 
     /// animation with tag
-    pub fn with_tag(mut self, tag: &str) -> Self {
-        self.tag = Some(tag.to_string());
+    pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
+        self.tag = Some(tag.into());
         self
     }
 
@@ -166,21 +166,28 @@ impl Animation {
     }
 
     /// chains an animation after the current one is done
-    pub fn with_then(mut self, tag: &str, repeats: AnimationRepeat) -> Self {
-        self.queue.push_back((tag.to_string(), repeats));
+    pub fn with_then(mut self, tag: impl Into<String>, repeats: AnimationRepeat) -> Self {
+        self.queue.push_back((tag.into(), repeats));
         self
     }
 
     /// instanly starts playing a new animation, clearing any item left in the queue.
-    pub fn play(&mut self, tag: &str, repeat: AnimationRepeat) {
-        self.tag = Some(tag.to_string());
+    pub fn play(&mut self, tag: impl Into<String>, repeat: AnimationRepeat) {
+        self.tag = Some(tag.into());
         self.repeat = repeat;
         self.queue.clear();
     }
 
+    /// instanly starts playing a new animation, clearing any item left in the queue.
+    pub fn play_loop(&mut self, tag: impl Into<String>) {
+        self.tag = Some(tag.into());
+        self.repeat = AnimationRepeat::Loop;
+        self.queue.clear();
+    }
+
     /// chains an animation after the current one is done
-    pub fn then(&mut self, tag: &str, repeats: AnimationRepeat) {
-        self.queue.push_back((tag.to_string(), repeats));
+    pub fn then(&mut self, tag: impl Into<String>, repeats: AnimationRepeat) {
+        self.queue.push_back((tag.into(), repeats));
     }
 
     /// clears any queued up animations
