@@ -38,7 +38,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
             animation: Animation::tag("walk-up")
                 .with_repeat(AnimationRepeat::Loop)
                 .with_direction(AnimationDirection::Forward)
-                .with_speed(0.001),
+                .with_speed(2.0),
             aseprite: server.load("player.aseprite"),
         },
         Transform::from_translation(Vec3::new(15., 0., 0.)),

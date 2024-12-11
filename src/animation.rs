@@ -315,7 +315,8 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
             return;
         }
 
-        state.elapsed += time.delta();
+        state.elapsed +=
+            std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation().speed);
 
         let Some(frame_duration) = aseprite
             .frame_durations
