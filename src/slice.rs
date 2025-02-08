@@ -50,7 +50,7 @@ fn update_aseprite_ui_slice(
         };
 
         let Some(slice) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not extists {}", slice.name);
+            warn!("slice does not exists {}", slice.name);
             continue;
         };
 
@@ -78,7 +78,7 @@ fn update_aseprite_sprite_slice(
         };
 
         let Some(slice) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not extists {}", slice.name);
+            warn!("slice does not exists {}", slice.name);
             continue;
         };
 
