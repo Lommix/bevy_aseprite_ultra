@@ -1,7 +1,7 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::prelude::*;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
 impl Plugin for AsepriteAnimationPlugin {
@@ -353,8 +353,12 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
                     animation.animation_mut().relative_group = animation.animation().new_relative_group;
                     state.current_frame = *range.start();
                     state.relative_frame = 0;
+                    state.elapsed = std::time::Duration::ZERO;
+
                 } else {
                     state.current_frame = *range.start() + (state.relative_frame  % (*range.end() - *range.start()));
+
+
                 }
             }
         }
@@ -364,6 +368,7 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
         if is_manual {
             return;
         }
+
 
         state.elapsed +=
             std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation().speed);
@@ -377,7 +382,7 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
 
         if state.elapsed > *frame_duration {
             cmd.trigger_targets(NextFrameEvent, entity);
-            state.elapsed = std::time::Duration::ZERO;
+            state.elapsed = Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
         }
     }
 }
@@ -426,6 +431,7 @@ fn next_frame<T: AseAnimation>(
     match direction {
         AnimationDirection::Forward => {
             let next = state.current_frame + 1;
+
             if next > *range.end() {
                 match animation.repeat {
                     AnimationRepeat::Loop => {
