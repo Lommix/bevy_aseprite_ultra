@@ -191,7 +191,7 @@ impl Animation {
         self.queue.clear();
     }
 
-    /// instanly starts playing a new animation, clearing any item left in the queue.
+    /// instanly starts playing a new animation starting with same relative frame only if the new relative group is the same as the previous one.
     pub fn play_with_relative_group(&mut self, tag: impl Into<String>, repeat: AnimationRepeat, new_relative_group: u16) {
         self.tag = Some(tag.into());
         self.new_relative_group = new_relative_group;
