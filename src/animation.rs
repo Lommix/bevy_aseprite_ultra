@@ -120,6 +120,7 @@ pub struct Animation {
     // overwrite aseprite direction
     pub direction: Option<AnimationDirection>,
     pub queue: VecDeque<(String, AnimationRepeat)>,
+    pub hold_relative_frame: bool,
 }
 
 impl Default for Animation {
@@ -131,6 +132,7 @@ impl Default for Animation {
             repeat: AnimationRepeat::Loop,
             direction: None,
             queue: VecDeque::new(),
+            hold_relative_frame: false,
         }
     }
 }
@@ -144,6 +146,13 @@ impl Animation {
     /// animation speed multiplier, default is 1.0
     pub fn with_speed(mut self, speed: f32) -> Self {
         self.speed = speed;
+        self
+    }
+
+
+    /// animation holds relative frame when tag changes, default is false
+    pub fn with_relative_frame_hold(mut self, hold_relative_frame: bool) -> Self {
+        self.hold_relative_frame = hold_relative_frame;
         self
     }
 
@@ -218,6 +227,7 @@ impl From<&str> for Animation {
 pub struct AnimationState {
     /// carefull, changing the frame out of bounds
     /// may result in panic.
+    pub relative_frame: u16,
     pub current_frame: u16,
     pub elapsed: std::time::Duration,
     pub current_direction: PlayDirection,
@@ -227,6 +237,9 @@ pub struct AnimationState {
 impl AnimationState {
     pub fn current_frame(&self) -> u16 {
         self.current_frame
+    }
+    pub fn relative_frame(&self) -> u16 {
+        self.relative_frame
     }
 }
 
@@ -296,7 +309,7 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
     aseprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
 ) {
-    for (entity, animation, mut state, mut target, is_manual) in animations.iter_mut() {
+    for (entity, mut animation, mut state, mut target, is_manual) in animations.iter_mut() {
         let Some(aseprite) = aseprites.get(animation.aseprite()) else {
             continue;
         };
@@ -313,7 +326,14 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
         // has to check start and end! because hot reloading can cause
         // animations to be outside of the animation range
         if !range.contains(&state.current_frame) {
-            state.current_frame = *range.start();
+            
+
+            if animation.animation().hold_relative_frame {
+                state.current_frame = *range.start() + (state.relative_frame  % (*range.end() - *range.start()));
+            } else {
+                state.current_frame = *range.start();
+                state.relative_frame = 0;
+            }
         }
 
         animation.render(&mut target, state.current_frame, aseprite);
@@ -387,11 +407,13 @@ fn next_frame<T: AseAnimation>(
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = *range.start();
+                        state.relative_frame = 0;
                         events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_frame = *range.start();
+                            state.relative_frame = 0;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             if animation.queue.is_empty() {
@@ -404,6 +426,7 @@ fn next_frame<T: AseAnimation>(
                 }
             } else {
                 state.current_frame = next;
+                state.relative_frame += 1;
             }
         }
         AnimationDirection::Reverse => {
@@ -413,11 +436,13 @@ fn next_frame<T: AseAnimation>(
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = range.end() - 1;
+                        state.relative_frame = range.end() - range.start() -1;
                         events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_frame = range.end() - 1;
+                            state.relative_frame = range.end() - range.start() -1;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             if animation.queue.is_empty() {
@@ -430,12 +455,20 @@ fn next_frame<T: AseAnimation>(
                 }
             } else {
                 state.current_frame = next;
+                state.relative_frame.checked_sub(1).unwrap_or(range.end() - range.start() -1);
             }
         }
         AnimationDirection::PingPong | AnimationDirection::PingPongReverse => {
-            let next = match state.current_direction {
-                PlayDirection::Forward => state.current_frame + 1,
-                PlayDirection::Backward => state.current_frame.checked_sub(1).unwrap_or(0),
+            let (next, relative_next) = match state.current_direction {
+                PlayDirection::Forward => {
+                    
+                    
+                    (state.current_frame + 1,state.relative_frame + 1)
+                },
+                PlayDirection::Backward => {
+                    (state.relative_frame.checked_sub(1).unwrap_or(0),
+                    state.current_frame.checked_sub(1).unwrap_or(0))
+                },
             };
 
             let is_forward = match state.current_direction {
@@ -448,12 +481,14 @@ fn next_frame<T: AseAnimation>(
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Backward;
                         state.current_frame = range.end() - 2;
+                        state.relative_frame = range.end() - range.start() -2;
                         events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_direction = PlayDirection::Backward;
                             state.current_frame = range.end() - 2;
+                            state.relative_frame = range.end() - range.start() -2;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             if animation.queue.is_empty() {
@@ -469,12 +504,14 @@ fn next_frame<T: AseAnimation>(
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Forward;
                         state.current_frame = *range.start();
+                        state.relative_frame = 0;
                         events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_direction = PlayDirection::Forward;
                             state.current_frame = *range.start();
+                            state.relative_frame = 0;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             if animation.queue.is_empty() {
@@ -487,7 +524,10 @@ fn next_frame<T: AseAnimation>(
                 };
             } else {
                 state.current_frame = next;
+                state.relative_frame = relative_next;
             }
         }
     };
+
+    println!("{} {}", state.current_frame, state.relative_frame);
 }
