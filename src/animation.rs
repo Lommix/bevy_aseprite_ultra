@@ -354,10 +354,12 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
                     state.current_frame = *range.start();
                     state.relative_frame = 0;
                     state.elapsed = std::time::Duration::ZERO;
+                    
 
                 } else {
-                    state.current_frame = *range.start() + (state.relative_frame  % (*range.end() - *range.start()));
-
+                    state.relative_frame = (state.relative_frame)  % (*range.end() *range.start()-1);
+                    state.current_frame = *range.start() + state.relative_frame;
+                    
 
                 }
             }
@@ -383,6 +385,7 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
         if state.elapsed > *frame_duration {
             cmd.trigger_targets(NextFrameEvent, entity);
             state.elapsed = Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
+
         }
     }
 }
