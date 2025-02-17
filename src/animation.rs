@@ -121,6 +121,8 @@ pub struct Animation {
     pub direction: Option<AnimationDirection>,
     pub queue: VecDeque<(String, AnimationRepeat)>,
     pub hold_relative_frame: bool,
+    pub relative_group: u16,
+    pub new_relative_group: u16,
 }
 
 impl Default for Animation {
@@ -133,6 +135,8 @@ impl Default for Animation {
             direction: None,
             queue: VecDeque::new(),
             hold_relative_frame: false,
+            relative_group: 0,
+            new_relative_group: 0,
         }
     }
 }
@@ -183,6 +187,14 @@ impl Animation {
     /// instanly starts playing a new animation, clearing any item left in the queue.
     pub fn play(&mut self, tag: impl Into<String>, repeat: AnimationRepeat) {
         self.tag = Some(tag.into());
+        self.repeat = repeat;
+        self.queue.clear();
+    }
+
+    /// instanly starts playing a new animation, clearing any item left in the queue.
+    pub fn play_with_relative_group(&mut self, tag: impl Into<String>, repeat: AnimationRepeat, new_relative_group: u16) {
+        self.tag = Some(tag.into());
+        self.new_relative_group = new_relative_group;
         self.repeat = repeat;
         self.queue.clear();
     }
@@ -327,12 +339,23 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
         // animations to be outside of the animation range
         if !range.contains(&state.current_frame) {
             
+             //Default code
+            if !animation.animation().hold_relative_frame {
 
-            if animation.animation().hold_relative_frame {
-                state.current_frame = *range.start() + (state.relative_frame  % (*range.end() - *range.start()));
-            } else {
                 state.current_frame = *range.start();
                 state.relative_frame = 0;
+                animation.animation_mut().relative_group = 0;
+                animation.animation_mut().new_relative_group = 0;
+
+            // Using relative frame switching
+            } else { 
+                if animation.animation().new_relative_group != animation.animation().relative_group { 
+                    animation.animation_mut().relative_group = animation.animation().new_relative_group;
+                    state.current_frame = *range.start();
+                    state.relative_frame = 0;
+                } else {
+                    state.current_frame = *range.start() + (state.relative_frame  % (*range.end() - *range.start()));
+                }
             }
         }
 
@@ -529,5 +552,4 @@ fn next_frame<T: AseAnimation>(
         }
     };
 
-    println!("{} {}", state.current_frame, state.relative_frame);
 }
