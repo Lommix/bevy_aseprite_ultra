@@ -11,9 +11,8 @@ pub(crate) mod slice;
 
 pub mod prelude {
     pub use crate::animation::{
-        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AnimationState,
-        AseSpriteAnimation, AseUiAnimation,  ManualTick, NextFrameEvent,
-        PlayDirection, partial_update_aseprite_sprite_animation, AseNoneAnimation,
+        partial_update_aseprite_sprite_animation, Animation, AnimationDirection, AnimationEvents,
+        AnimationRepeat, AnimationState, AseAnimation, ManualTick, NextFrameEvent, PlayDirection,
     };
     pub use crate::loader::Aseprite;
     pub use crate::slice::{AseSpriteSlice, AseUiSlice};

@@ -11,15 +11,14 @@ impl Plugin for AsepriteAnimationPlugin {
         app.add_systems(
             Update,
             (
-                update_aseprite_sprite_animation::<AseNoneAnimation, AseSpriteAnimation>,
-                update_aseprite_sprite_animation::<AseNoneAnimation, AseUiAnimation>,
+                update_aseprite_sprite_animation::<Sprite>,
+                update_aseprite_sprite_animation::<ImageNode>,
             ),
         );
 
-        app.add_observer(next_frame::<AseNoneAnimation>);
+        app.add_observer(next_frame);
 
-        app.register_type::<AseSpriteAnimation>();
-        app.register_type::<AseUiAnimation>();
+        app.register_type::<AseAnimation>();
         app.register_type::<Animation>();
         app.register_type::<AnimationState>();
         app.register_type::<PlayDirection>();
@@ -30,24 +29,10 @@ impl Plugin for AsepriteAnimationPlugin {
 #[derive(Component, Default, Reflect, Clone, Debug)]
 #[require(AnimationState)]
 #[reflect]
-pub struct AseNoneAnimation  {
+pub struct AseAnimation  {
     pub animation: Animation,
     pub aseprite: Handle<Aseprite>,
 }
-
-/// Create a Sprite using an Aseprite Animation.
-/// It's a `Sprite` with some extra steps.
-#[derive(Component, Default, Reflect, Clone, Debug)]
-#[require(Sprite, AseNoneAnimation)]
-#[reflect]
-pub struct AseSpriteAnimation;
-
-/// Create a UI Node using a Aseprite Animation.
-/// It's an `UiImage` with some extra steps.
-#[derive(Component, Reflect, Default, Clone, Debug)]
-#[require(ImageNode, AseNoneAnimation)]
-#[reflect]
-pub struct AseUiAnimation;
 
 /// Add this tag, if you do not want to plugin to handle
 /// anitmation ticks. Instead you can directly control the
@@ -55,41 +40,31 @@ pub struct AseUiAnimation;
 #[derive(Component)]
 pub struct ManualTick;
 
-trait PartialAseAnimation: Component {
-    fn aseprite(&self) -> &Handle<Aseprite>;
-    fn animation(&self) -> &Animation;
-    fn animation_mut(&mut self) -> &mut Animation;
+trait AseRender: Component {
+    fn render(&mut self, frame: u16, aseprite: &Aseprite);
 }
 
-trait AseAnimation: Component {
-    type Target: Component;
-
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite);
-}
-
-impl AseAnimation for AseUiAnimation {
-    type Target = ImageNode;
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
+impl AseRender for ImageNode {
+    fn render(&mut self, frame: u16, aseprite: &Aseprite) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
             index: aseprite.get_atlas_index(usize::from(frame)),
         });
     }
 }
 
-impl AseAnimation for AseSpriteAnimation {
-    type Target = Sprite;
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
+impl AseRender for Sprite {
+    fn render(&mut self, frame: u16, aseprite: &Aseprite) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
             index: aseprite.get_atlas_index(usize::from(frame)),
         });
     }
 }
 
-impl PartialAseAnimation for AseNoneAnimation {
+impl AseAnimation {
     fn aseprite(&self) -> &Handle<Aseprite> {
         &self.aseprite
     }
@@ -307,10 +282,10 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-pub fn partial_update_aseprite_sprite_animation<T: PartialAseAnimation, F: FnMut(&T, u16, &Aseprite)>(
+pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)>(
     cmd: &mut Commands,
     entity: Entity,
-    animation: &mut T,
+    animation: &mut AseAnimation,
     state: &mut AnimationState,
     is_manual: bool,
     aseprites: &Res<Assets<Aseprite>>,
@@ -377,29 +352,28 @@ pub fn partial_update_aseprite_sprite_animation<T: PartialAseAnimation, F: FnMut
     }
 }
 
-fn update_aseprite_sprite_animation<T: PartialAseAnimation, U: AseAnimation>(
+fn update_aseprite_sprite_animation<T: AseRender>(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
+        &mut AseAnimation,
         &mut T,
-        &mut U,
         &mut AnimationState,
-        &mut U::Target,
         Has<ManualTick>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
 ) {
-    for (entity, mut partial_animation, animation, mut state, mut target, is_manual) in &mut animations {
+    for (entity, mut animation, mut target, mut state, is_manual) in &mut animations {
         partial_update_aseprite_sprite_animation(
             &mut cmd,
             entity,
-            partial_animation.into_inner(),
+            animation.into_inner(),
             &mut state,
             is_manual,
             &aseprites,
             move |_animation, frame: u16, aseprite: &Aseprite| {
-                animation.render(&mut target, frame, aseprite);
+                target.render(frame, aseprite);
             },
             &time,
         );
@@ -409,10 +383,10 @@ fn update_aseprite_sprite_animation<T: PartialAseAnimation, U: AseAnimation>(
 #[derive(Event)]
 pub struct NextFrameEvent;
 
-fn next_frame<T: PartialAseAnimation>(
+fn next_frame(
     trigger: Trigger<NextFrameEvent>,
     mut events: EventWriter<AnimationEvents>,
-    mut animations: Query<(&mut AnimationState, &mut T)>,
+    mut animations: Query<(&mut AnimationState, &mut AseAnimation)>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     let Ok((mut state, mut ase)) = animations.get_mut(trigger.entity()) else {
