@@ -343,7 +343,7 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-pub fn partial_update_aseprite_sprite_animation<T: PartialAseAnimation, F: FnMut(&mut T, u16, &Aseprite)>(
+pub fn partial_update_aseprite_sprite_animation<T: PartialAseAnimation, F: FnMut(&T, u16, &Aseprite)>(
     cmd: &mut Commands,
     entity: Entity,
     animation: &mut T,
