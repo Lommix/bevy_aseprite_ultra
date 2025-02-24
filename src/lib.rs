@@ -13,7 +13,7 @@ pub mod prelude {
     pub use crate::animation::{
         Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AnimationState,
         AseSpriteAnimation, AseUiAnimation,  ManualTick, NextFrameEvent,
-        PlayDirection,
+        PlayDirection, partial_update_aseprite_sprite_animation, AseNoneAnimation,
     };
     pub use crate::loader::Aseprite;
     pub use crate::slice::{AseSpriteSlice, AseUiSlice};

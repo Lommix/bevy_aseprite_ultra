@@ -48,24 +48,59 @@ pub struct AseUiAnimation {
     pub aseprite: Handle<Aseprite>,
 }
 
+#[derive(Component, Default, Reflect, Clone, Debug)]
+#[require(AnimationState)]
+#[reflect]
+pub struct AseNoneAnimation {
+    pub animation: Animation,
+    pub aseprite: Handle<Aseprite>,
+}
+
 /// Add this tag, if you do not want to plugin to handle
 /// anitmation ticks. Instead you can directly control the
 /// `AnimationState` component
 #[derive(Component)]
 pub struct ManualTick;
 
-trait AseAnimation: Component {
-    type Target: Component;
-
+trait PartialAseAnimation {
     fn aseprite(&self) -> &Handle<Aseprite>;
     fn animation(&self) -> &Animation;
     fn animation_mut(&mut self) -> &mut Animation;
+}
+
+trait AseAnimation: Component + PartialAseAnimation {
+    type Target: Component;
+
     fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite);
+}
+
+impl PartialAseAnimation for AseUiAnimation {
+    fn aseprite(&self) -> &Handle<Aseprite> {
+        &self.aseprite
+    }
+
+    fn animation(&self) -> &Animation {
+        &self.animation
+    }
+
+    fn animation_mut(&mut self) -> &mut Animation {
+        &mut self.animation
+    }
 }
 
 impl AseAnimation for AseUiAnimation {
     type Target = ImageNode;
 
+    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
+        target.image = aseprite.atlas_image.clone();
+        target.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(frame)),
+        });
+    }
+}
+
+impl PartialAseAnimation for AseSpriteAnimation {
     fn aseprite(&self) -> &Handle<Aseprite> {
         &self.aseprite
     }
@@ -76,31 +111,11 @@ impl AseAnimation for AseUiAnimation {
 
     fn animation_mut(&mut self) -> &mut Animation {
         &mut self.animation
-    }
-
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(frame)),
-        });
     }
 }
 
 impl AseAnimation for AseSpriteAnimation {
     type Target = Sprite;
-
-    fn aseprite(&self) -> &Handle<Aseprite> {
-        &self.aseprite
-    }
-    fn animation(&self) -> &Animation {
-        &self.animation
-    }
-
-    fn animation_mut(&mut self) -> &mut Animation {
-        &mut self.animation
-    }
-
     fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
         target.image = aseprite.atlas_image.clone();
         target.texture_atlas = Some(TextureAtlas {
@@ -109,6 +124,21 @@ impl AseAnimation for AseSpriteAnimation {
         });
     }
 }
+
+impl PartialAseAnimation for AseNoneAnimation {
+    fn aseprite(&self) -> &Handle<Aseprite> {
+        &self.aseprite
+    }
+
+    fn animation(&self) -> &Animation {
+        &self.animation
+    }
+
+    fn animation_mut(&mut self) -> &mut Animation {
+        &mut self.animation
+    }
+}
+
 
 #[derive(Debug, Clone, Reflect)]
 #[reflect]
@@ -153,7 +183,6 @@ impl Animation {
         self
     }
 
-
     /// animation holds relative frame when tag changes, default is false
     pub fn with_relative_frame_hold(mut self, hold_relative_frame: bool) -> Self {
         self.hold_relative_frame = hold_relative_frame;
@@ -192,7 +221,12 @@ impl Animation {
     }
 
     /// instanly starts playing a new animation starting with same relative frame only if the new relative group is the same as the previous one.
-    pub fn play_with_relative_group(&mut self, tag: impl Into<String>, repeat: AnimationRepeat, new_relative_group: u16) {
+    pub fn play_with_relative_group(
+        &mut self,
+        tag: impl Into<String>,
+        repeat: AnimationRepeat,
+        new_relative_group: u16,
+    ) {
         self.tag = Some(tag.into());
         self.new_relative_group = new_relative_group;
         self.repeat = repeat;
@@ -309,6 +343,76 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
+pub fn partial_update_aseprite_sprite_animation<T: PartialAseAnimation, F: FnMut(&mut T, u16, &Aseprite)>(
+    cmd: &mut Commands,
+    entity: Entity,
+    animation: &mut T,
+    state: &mut AnimationState,
+    is_manual: bool,
+    aseprites: &Res<Assets<Aseprite>>,
+    mut render: F,
+    time: &Res<Time>,
+) {
+    let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+        return;
+    };
+
+    let range = match animation.animation().tag.as_ref() {
+        Some(tag) => aseprite
+            .tags
+            .get(tag)
+            .map(|meta| meta.range.clone())
+            .unwrap(),
+        None => 0..=(aseprite.frame_durations.len() as u16 - 1),
+    };
+
+    // has to check start and end! because hot reloading can cause
+    // animations to be outside of the animation range
+    if !range.contains(&state.current_frame) {
+        //Default code
+        if !animation.animation().hold_relative_frame {
+            state.current_frame = *range.start();
+            state.relative_frame = 0;
+            animation.animation_mut().relative_group = 0;
+            animation.animation_mut().new_relative_group = 0;
+
+        // Using relative frame switching
+        } else {
+            if animation.animation().new_relative_group != animation.animation().relative_group {
+                animation.animation_mut().relative_group = animation.animation().new_relative_group;
+                state.current_frame = *range.start();
+                state.relative_frame = 0;
+                state.elapsed = std::time::Duration::ZERO;
+            } else {
+                state.relative_frame = (state.relative_frame) % (*range.end() * range.start() - 1);
+                state.current_frame = *range.start() + state.relative_frame;
+            }
+        }
+    }
+
+    render(animation, state.current_frame, aseprite);
+
+    if is_manual {
+        return;
+    }
+
+    state.elapsed +=
+        std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation().speed);
+
+    let Some(frame_duration) = aseprite
+        .frame_durations
+        .get(usize::from(state.current_frame))
+    else {
+        return;
+    };
+
+    if state.elapsed > *frame_duration {
+        cmd.trigger_targets(NextFrameEvent, entity);
+        state.elapsed =
+            Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
+    }
+}
+
 fn update_aseprite_sprite_animation<T: AseAnimation>(
     mut cmd: Commands,
     mut animations: Query<(
@@ -321,72 +425,19 @@ fn update_aseprite_sprite_animation<T: AseAnimation>(
     aseprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
 ) {
-    for (entity, mut animation, mut state, mut target, is_manual) in animations.iter_mut() {
-        let Some(aseprite) = aseprites.get(animation.aseprite()) else {
-            continue;
-        };
-
-        let range = match animation.animation().tag.as_ref() {
-            Some(tag) => aseprite
-                .tags
-                .get(tag)
-                .map(|meta| meta.range.clone())
-                .unwrap(),
-            None => 0..=(aseprite.frame_durations.len() as u16 - 1),
-        };
-
-        // has to check start and end! because hot reloading can cause
-        // animations to be outside of the animation range
-        if !range.contains(&state.current_frame) {
-            
-             //Default code
-            if !animation.animation().hold_relative_frame {
-
-                state.current_frame = *range.start();
-                state.relative_frame = 0;
-                animation.animation_mut().relative_group = 0;
-                animation.animation_mut().new_relative_group = 0;
-
-            // Using relative frame switching
-            } else { 
-                if animation.animation().new_relative_group != animation.animation().relative_group { 
-                    animation.animation_mut().relative_group = animation.animation().new_relative_group;
-                    state.current_frame = *range.start();
-                    state.relative_frame = 0;
-                    state.elapsed = std::time::Duration::ZERO;
-                    
-
-                } else {
-                    state.relative_frame = (state.relative_frame)  % (*range.end() *range.start()-1);
-                    state.current_frame = *range.start() + state.relative_frame;
-                    
-
-                }
-            }
-        }
-
-        animation.render(&mut target, state.current_frame, aseprite);
-
-        if is_manual {
-            return;
-        }
-
-
-        state.elapsed +=
-            std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation().speed);
-
-        let Some(frame_duration) = aseprite
-            .frame_durations
-            .get(usize::from(state.current_frame))
-        else {
-            continue;
-        };
-
-        if state.elapsed > *frame_duration {
-            cmd.trigger_targets(NextFrameEvent, entity);
-            state.elapsed = Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
-
-        }
+    for (entity, animation, mut state, mut target, is_manual) in &mut animations {
+        partial_update_aseprite_sprite_animation(
+            &mut cmd,
+            entity,
+            animation.into_inner(),
+            &mut state,
+            is_manual,
+            &aseprites,
+            move |animation, frame: u16, aseprite: &Aseprite| {
+                animation.render(&mut target, frame, aseprite);
+            },
+            &time,
+        );
     }
 }
 
@@ -468,13 +519,13 @@ fn next_frame<T: AseAnimation>(
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = range.end() - 1;
-                        state.relative_frame = range.end() - range.start() -1;
+                        state.relative_frame = range.end() - range.start() - 1;
                         events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_frame = range.end() - 1;
-                            state.relative_frame = range.end() - range.start() -1;
+                            state.relative_frame = range.end() - range.start() - 1;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             if animation.queue.is_empty() {
@@ -487,20 +538,19 @@ fn next_frame<T: AseAnimation>(
                 }
             } else {
                 state.current_frame = next;
-                state.relative_frame.checked_sub(1).unwrap_or(range.end() - range.start() -1);
+                state
+                    .relative_frame
+                    .checked_sub(1)
+                    .unwrap_or(range.end() - range.start() - 1);
             }
         }
         AnimationDirection::PingPong | AnimationDirection::PingPongReverse => {
             let (next, relative_next) = match state.current_direction {
-                PlayDirection::Forward => {
-                    
-                    
-                    (state.current_frame + 1,state.relative_frame + 1)
-                },
-                PlayDirection::Backward => {
-                    (state.relative_frame.checked_sub(1).unwrap_or(0),
-                    state.current_frame.checked_sub(1).unwrap_or(0))
-                },
+                PlayDirection::Forward => (state.current_frame + 1, state.relative_frame + 1),
+                PlayDirection::Backward => (
+                    state.relative_frame.checked_sub(1).unwrap_or(0),
+                    state.current_frame.checked_sub(1).unwrap_or(0),
+                ),
             };
 
             let is_forward = match state.current_direction {
@@ -513,14 +563,14 @@ fn next_frame<T: AseAnimation>(
                     AnimationRepeat::Loop => {
                         state.current_direction = PlayDirection::Backward;
                         state.current_frame = range.end() - 2;
-                        state.relative_frame = range.end() - range.start() -2;
+                        state.relative_frame = range.end() - range.start() - 2;
                         events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {
                             state.current_direction = PlayDirection::Backward;
                             state.current_frame = range.end() - 2;
-                            state.relative_frame = range.end() - range.start() -2;
+                            state.relative_frame = range.end() - range.start() - 2;
                             animation.repeat = AnimationRepeat::Count(count - 1);
                         } else {
                             if animation.queue.is_empty() {
@@ -560,5 +610,4 @@ fn next_frame<T: AseAnimation>(
             }
         }
     };
-
 }
