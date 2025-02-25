@@ -26,6 +26,7 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
+/// Create a Component using an Aseprite Animation.
 #[derive(Component, Default, Reflect, Clone, Debug)]
 #[require(AnimationState)]
 #[reflect]
@@ -34,12 +35,28 @@ pub struct AseAnimation  {
     pub aseprite: Handle<Aseprite>,
 }
 
+impl AseAnimation {
+    fn aseprite(&self) -> &Handle<Aseprite> {
+        &self.aseprite
+    }
+
+    fn animation(&self) -> &Animation {
+        &self.animation
+    }
+
+    fn animation_mut(&mut self) -> &mut Animation {
+        &mut self.animation
+    }
+}
+
+
 /// Add this tag, if you do not want to plugin to handle
 /// anitmation ticks. Instead you can directly control the
 /// `AnimationState` component
 #[derive(Component)]
 pub struct ManualTick;
 
+/// Any Component implementing this trait will automatically be used as a render target
 trait AseRender: Component {
     fn render(&mut self, frame: u16, aseprite: &Aseprite);
 }
@@ -63,21 +80,6 @@ impl AseRender for Sprite {
         });
     }
 }
-
-impl AseAnimation {
-    fn aseprite(&self) -> &Handle<Aseprite> {
-        &self.aseprite
-    }
-
-    fn animation(&self) -> &Animation {
-        &self.animation
-    }
-
-    fn animation_mut(&mut self) -> &mut Animation {
-        &mut self.animation
-    }
-}
-
 
 #[derive(Debug, Clone, Reflect)]
 #[reflect]
@@ -282,6 +284,9 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
+/// Updates and allows rednering to a component that does not implement AseRender
+/// using a closure, this allows for more context to be used in the render function
+/// like Resources and Assets
 pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)>(
     cmd: &mut Commands,
     entity: Entity,
@@ -351,7 +356,7 @@ pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &As
             Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
     }
 }
-
+/// Upadtes and automatically renders to any component that implements AseRender
 fn update_aseprite_sprite_animation<T: AseRender>(
     mut cmd: Commands,
     mut animations: Query<(
@@ -368,7 +373,7 @@ fn update_aseprite_sprite_animation<T: AseRender>(
         partial_update_aseprite_sprite_animation(
             &mut cmd,
             entity,
-            animation.into_inner(),
+            &mut animation,
             &mut state,
             is_manual,
             &aseprites,
