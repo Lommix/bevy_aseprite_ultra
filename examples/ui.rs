@@ -71,10 +71,11 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                 height: Val::Px(100.),
                 ..default()
             },
-            AseUiAnimation {
+            AseAnimation {
                 aseprite: server.load("player.aseprite").into(),
                 animation: Animation::default().with_tag("walk-right"),
             },
+            ImageNode::default(),
         ))
         .id();
 

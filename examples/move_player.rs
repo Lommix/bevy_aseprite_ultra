@@ -34,13 +34,14 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
 
     cmd.spawn((
-        AseSpriteAnimation {
+        AseAnimation {
             animation: Animation::tag("walk-up")
                 .with_repeat(AnimationRepeat::Loop)
                 .with_direction(AnimationDirection::Forward)
                 .with_speed(2.0),
             aseprite: server.load("player.aseprite"),
         },
+        Sprite::default(),
         Transform::from_translation(Vec3::new(15., 0., 0.)),
         Player {
             walk_speed: 30.,
@@ -50,7 +51,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     ));
 }
 
-fn player_animation(mut animation_query: Query<(&mut AseSpriteAnimation, &Player)>) {
+fn player_animation(mut animation_query: Query<(&mut AseAnimation, &Player)>) {
     for (mut ase_sprite_animation, player) in animation_query.iter_mut() {
         match player.state {
             PlayerState::Stand => {
