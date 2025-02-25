@@ -11,8 +11,8 @@ impl Plugin for AsepriteAnimationPlugin {
         app.add_systems(
             Update,
             (
-                update_aseprite_sprite_animation::<Sprite>,
-                update_aseprite_sprite_animation::<ImageNode>,
+                update_aseprite_animation::<Sprite>,
+                update_aseprite_animation::<ImageNode>,
             ),
         );
 
