@@ -272,7 +272,7 @@ impl From<u16> for AnimationRepeat {
 /// Updates and allows rednering to a component that does not implement AseRender
 /// using a closure, this allows for more context to be used in the render function
 /// like Resources and Assets
-pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)>(
+pub fn partial_update_aseprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)>(
     cmd: &mut Commands,
     entity: Entity,
     animation: &mut AseAnimation,
@@ -342,7 +342,7 @@ pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &As
     }
 }
 /// Upadtes and automatically renders to any component that implements AseRender
-fn update_aseprite_sprite_animation<T: AseRender>(
+fn update_aseprite_animation<T: AseRender>(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
@@ -355,7 +355,7 @@ fn update_aseprite_sprite_animation<T: AseRender>(
     time: Res<Time>,
 ) {
     for (entity, mut animation, mut target, mut state, is_manual) in &mut animations {
-        partial_update_aseprite_sprite_animation(
+        partial_update_aseprite_animation(
             &mut cmd,
             entity,
             &mut animation,
