@@ -57,7 +57,7 @@ impl AseAnimation {
 pub struct ManualTick;
 
 /// Any Component implementing this trait will automatically be used as a render target
-trait AseRender: Component {
+pub trait AseRender: Component {
     fn render(&mut self, frame: u16, aseprite: &Aseprite);
 }
 
