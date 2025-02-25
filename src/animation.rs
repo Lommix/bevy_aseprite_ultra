@@ -35,21 +35,6 @@ pub struct AseAnimation  {
     pub aseprite: Handle<Aseprite>,
 }
 
-impl AseAnimation {
-    fn aseprite(&self) -> &Handle<Aseprite> {
-        &self.aseprite
-    }
-
-    fn animation(&self) -> &Animation {
-        &self.animation
-    }
-
-    fn animation_mut(&mut self) -> &mut Animation {
-        &mut self.animation
-    }
-}
-
-
 /// Add this tag, if you do not want to plugin to handle
 /// anitmation ticks. Instead you can directly control the
 /// `AnimationState` component
@@ -297,11 +282,11 @@ pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &As
     mut render: F,
     time: &Res<Time>,
 ) {
-    let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+    let Some(aseprite) = aseprites.get(&animation.aseprite) else {
         return;
     };
 
-    let range = match animation.animation().tag.as_ref() {
+    let range = match animation.animation.tag.as_ref() {
         Some(tag) => aseprite
             .tags
             .get(tag)
@@ -314,16 +299,16 @@ pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &As
     // animations to be outside of the animation range
     if !range.contains(&state.current_frame) {
         //Default code
-        if !animation.animation().hold_relative_frame {
+        if !animation.animation.hold_relative_frame {
             state.current_frame = *range.start();
             state.relative_frame = 0;
-            animation.animation_mut().relative_group = 0;
-            animation.animation_mut().new_relative_group = 0;
+            animation.animation.relative_group = 0;
+            animation.animation.new_relative_group = 0;
 
         // Using relative frame switching
         } else {
-            if animation.animation().new_relative_group != animation.animation().relative_group {
-                animation.animation_mut().relative_group = animation.animation().new_relative_group;
+            if animation.animation.new_relative_group != animation.animation.relative_group {
+                animation.animation.relative_group = animation.animation.new_relative_group;
                 state.current_frame = *range.start();
                 state.relative_frame = 0;
                 state.elapsed = std::time::Duration::ZERO;
@@ -341,7 +326,7 @@ pub fn partial_update_aseprite_sprite_animation<F: FnMut(&AseAnimation, u16, &As
     }
 
     state.elapsed +=
-        std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation().speed);
+        std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation.speed);
 
     let Some(frame_duration) = aseprite
         .frame_durations
@@ -398,11 +383,11 @@ fn next_frame(
         return;
     };
 
-    let Some(aseprite) = aseprites.get(ase.aseprite()) else {
+    let Some(aseprite) = aseprites.get(&ase.aseprite) else {
         return;
     };
 
-    let animation = ase.animation_mut();
+    let animation = &mut ase.animation;
 
     let (range, direction) = match animation
         .tag
