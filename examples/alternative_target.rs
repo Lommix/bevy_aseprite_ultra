@@ -14,8 +14,8 @@ fn main() {
         }))
         .add_plugins(AsepriteUltraPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, render_aseprite_animation_my_material)
         .add_plugins(Material2dPlugin::<MyMaterial>::default())
+        .add_animation_render_system(render_aseprite_animation_my_material)
         .run();
 }
 

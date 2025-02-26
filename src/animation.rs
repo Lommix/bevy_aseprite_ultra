@@ -8,14 +8,8 @@ impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
         app.add_event::<NextFrameEvent>();
-        app.add_systems(
-            Update,
-            (
-                update_aseprite_animation,
-                render_aseprite_animation::<Sprite>.after(update_aseprite_animation),
-                render_aseprite_animation::<ImageNode>.after(update_aseprite_animation),
-            ),
-        );
+        app.add_systems(Update, update_aseprite_animation);
+        app.add_animation_render_system((render_image_node, render_sprite));
 
         app.add_observer(next_frame);
 
@@ -27,13 +21,56 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
+pub trait AddAnimationRenderSystem {
+    fn add_animation_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self;
+}
+
+impl AddAnimationRenderSystem for App {
+    fn add_animation_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
+        self.add_systems(Update, systems.after(update_aseprite_animation));
+        self
+    }
+}
+
 /// Create a Component using an Aseprite Animation.
 #[derive(Component, Default, Reflect, Clone, Debug)]
 #[require(AnimationState)]
 #[reflect]
-pub struct AseAnimation  {
+pub struct AseAnimation {
     pub animation: Animation,
     pub aseprite: Handle<Aseprite>,
+}
+
+fn render_image_node(
+    mut animations: Query<(&AseAnimation, &mut ImageNode, &AnimationState)>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (animation, mut target, state) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
+        target.image = aseprite.atlas_image.clone();
+        target.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
+        });
+    }
+}
+
+fn render_sprite(
+    mut animations: Query<(&AseAnimation, &mut Sprite, &AnimationState)>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (animation, mut target, state) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
+        target.image = aseprite.atlas_image.clone();
+        target.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
+        });
+    }
 }
 
 /// Add this tag, if you do not want to plugin to handle
@@ -41,31 +78,6 @@ pub struct AseAnimation  {
 /// `AnimationState` component
 #[derive(Component)]
 pub struct ManualTick;
-
-/// Any Component implementing this trait will automatically be used as a render target
-pub trait AseAnimationRender: Component {
-    fn render(&mut self, frame: u16, aseprite: &Aseprite);
-}
-
-impl AseAnimationRender for ImageNode {
-    fn render(&mut self, frame: u16, aseprite: &Aseprite) {
-        self.image = aseprite.atlas_image.clone();
-        self.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(frame)),
-        });
-    }
-}
-
-impl AseAnimationRender for Sprite {
-    fn render(&mut self, frame: u16, aseprite: &Aseprite) {
-        self.image = aseprite.atlas_image.clone();
-        self.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(frame)),
-        });
-    }
-}
 
 #[derive(Debug, Clone, Reflect)]
 #[reflect]
@@ -295,7 +307,7 @@ fn update_aseprite_animation(
                 .unwrap(),
             None => 0..=(aseprite.frame_durations.len() as u16 - 1),
         };
-    
+
         // has to check start and end! because hot reloading can cause
         // animations to be outside of the animation range
         if !range.contains(&state.current_frame) {
@@ -305,7 +317,7 @@ fn update_aseprite_animation(
                 state.relative_frame = 0;
                 animation.animation.relative_group = 0;
                 animation.animation.new_relative_group = 0;
-    
+
             // Using relative frame switching
             } else {
                 if animation.animation.new_relative_group != animation.animation.relative_group {
@@ -314,51 +326,32 @@ fn update_aseprite_animation(
                     state.relative_frame = 0;
                     state.elapsed = std::time::Duration::ZERO;
                 } else {
-                    state.relative_frame = (state.relative_frame) % (*range.end() * range.start() - 1);
+                    state.relative_frame =
+                        (state.relative_frame) % (*range.end() * range.start() - 1);
                     state.current_frame = *range.start() + state.relative_frame;
                 }
             }
         }
-    
+
         if is_manual {
             return;
         }
-    
+
         state.elapsed +=
             std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation.speed);
-    
+
         let Some(frame_duration) = aseprite
             .frame_durations
             .get(usize::from(state.current_frame))
         else {
             return;
         };
-    
+
         if state.elapsed > *frame_duration {
             cmd.trigger_targets(NextFrameEvent, entity);
             state.elapsed =
                 Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
         }
-    }
-}
-
-
-/// Renders all `AseAnimation`s to any `Component` that implements `AseAnimationRender`
-/// Implement AseAnimationRender for your own custom targets
-/// Or create your own render function as seen in the alternative_target example
-fn render_aseprite_animation<T: AseAnimationRender>(
-    mut animations: Query<(
-        &AseAnimation,
-        &mut T,
-        &AnimationState,
-    )>,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    for (animation, mut target, state) in &mut animations {
-        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
-            continue;
-        };
-        target.render(state.current_frame, aseprite);
     }
 }
 

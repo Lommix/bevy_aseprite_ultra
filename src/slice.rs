@@ -1,22 +1,30 @@
-use crate::{
-    loader::{Aseprite, SliceMeta},
-    FullyLoaded,
-};
+use crate::{loader::Aseprite, FullyLoaded};
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
+
 impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
             (
                 update_aseprite_slice,
-                render_aseprite_slice::<Sprite>.after(update_aseprite_slice),
-                render_aseprite_slice::<ImageNode>.after(update_aseprite_slice),
                 hotreload_slice.run_if(on_event::<AssetEvent<Aseprite>>),
             ),
         );
+        app.add_slice_render_system((render_image_node, render_sprite));
         app.register_type::<AseSlice>();
+    }
+}
+
+pub trait AddSliceRenderSystem {
+    fn add_slice_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self;
+}
+
+impl AddSliceRenderSystem for App {
+    fn add_slice_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
+        self.add_systems(Update, systems.after(update_aseprite_slice));
+        self
     }
 }
 
@@ -28,27 +36,43 @@ pub struct AseSlice {
     pub aseprite: Handle<Aseprite>,
 }
 
-pub trait AseSliceRender: Component {
-    fn render(&mut self, slice_meta: &SliceMeta, aseprite: &Aseprite);
-}
-
-impl AseSliceRender for ImageNode {
-    fn render(&mut self, slice_meta: &SliceMeta, aseprite: &Aseprite) {
-        self.image = aseprite.atlas_image.clone();
-        self.texture_atlas = Some(TextureAtlas {
+fn render_image_node(
+    mut nodes: Query<(&mut ImageNode, &AseSlice), Or<(Added<FullyLoaded>, Changed<AseSlice>)>>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (mut target, slice) in nodes.iter_mut() {
+        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
+            return;
+        };
+        let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
+            warn!("slice does not exists {}", slice.name);
+            return;
+        };
+        target.image = aseprite.atlas_image.clone();
+        target.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
             index: slice_meta.atlas_id,
         });
     }
 }
 
-impl AseSliceRender for Sprite {
-    fn render(&mut self, slice: &SliceMeta, aseprite: &Aseprite) {
-        self.anchor = Anchor::from(slice);
-        self.image = aseprite.atlas_image.clone();
-        self.texture_atlas = Some(TextureAtlas {
+fn render_sprite(
+    mut nodes: Query<(&mut Sprite, &AseSlice), Or<(Added<FullyLoaded>, Changed<AseSlice>)>>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (mut target, slice) in nodes.iter_mut() {
+        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
+            return;
+        };
+        let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
+            warn!("slice does not exists {}", slice.name);
+            return;
+        };
+        target.anchor = Anchor::from(slice_meta);
+        target.image = aseprite.atlas_image.clone();
+        target.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
-            index: slice.atlas_id,
+            index: slice_meta.atlas_id,
         });
     }
 }
@@ -60,25 +84,6 @@ fn update_aseprite_slice(
 ) {
     for entity in nodes.iter_mut() {
         cmd.entity(entity).insert(FullyLoaded);
-    }
-}
-
-/// Renders all `AseSlice`s to any `Component` that implements `AseSliceRender`
-/// Implement AseAnimationRender for your own custom targets
-/// Or create your own render function as seen in the alternative_target example
-fn render_aseprite_slice<T: AseSliceRender>(
-    mut nodes: Query<(&mut T, &AseSlice), Or<(Added<FullyLoaded>, Changed<AseSlice>)>>,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    for (mut target, slice) in nodes.iter_mut() {
-        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
-            return;
-        };
-        let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not exists {}", slice.name);
-            return;
-        };
-        target.render(slice_meta, aseprite);
     }
 }
 
