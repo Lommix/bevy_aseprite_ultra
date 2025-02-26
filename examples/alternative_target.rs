@@ -56,7 +56,10 @@ pub fn update_aseprite_animation_my_material(
     time: Res<Time>,
     atlas_layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
-    for (entity, animation, mut state, target, is_manual) in &mut animations {
+    for (entity, animation, mut state, aa_material, is_manual) in &mut animations {
+        let Some(aa_material) = aa_materials.get_mut(aa_material) else {
+            return;
+        };
         partial_update_aseprite_animation(
             &mut cmd,
             entity,
@@ -65,9 +68,6 @@ pub fn update_aseprite_animation_my_material(
             is_manual,
             &aseprites,
             |_animation: &AseAnimation, frame: u16, aseprite: &Aseprite| {
-                let Some(aa_material) = aa_materials.get_mut(target) else {
-                    return;
-                };
                 let Some(atlas_layout) = atlas_layouts.get(&aseprite.atlas_layout) else {
                     return;
                 };
