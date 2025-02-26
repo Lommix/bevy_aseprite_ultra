@@ -58,7 +58,6 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
             animation: Animation::tag("walk-right"),
             aseprite: server.load("player.aseprite"),
         },
-        Sprite::default(),
         Transform::from_translation(Vec3::new(15., -20., 0.)),
         Sprite {
             flip_x: true,
