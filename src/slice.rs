@@ -1,4 +1,7 @@
-use crate::{loader::Aseprite, FullyLoaded};
+use crate::{
+    loader::{Aseprite, SliceMeta},
+    FullyLoaded,
+};
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
@@ -7,111 +10,98 @@ impl Plugin for AsepriteSlicePlugin {
         app.add_systems(
             Update,
             (
-                update_aseprite_sprite_slice,
-                update_aseprite_ui_slice,
-                hotreload_ui_slice.run_if(on_event::<AssetEvent<Aseprite>>),
+                update_aseprite_slice::<Sprite>,
+                update_aseprite_slice::<ImageNode>,
+                hotreload_slice.run_if(on_event::<AssetEvent<Aseprite>>),
             ),
         );
-        app.register_type::<AseSpriteSlice>();
+        app.register_type::<AseSlice>();
     }
 }
 
 /// Displays a aseprite atlas slice
-/// on an UI entity.
 #[derive(Component, Reflect, Default, Debug, Clone)]
-#[require(ImageNode)]
 #[reflect]
-pub struct AseUiSlice {
+pub struct AseSlice {
     pub name: String,
     pub aseprite: Handle<Aseprite>,
 }
 
-/// Displays a aseprite atlas slice
-/// on a sprite entity.
-#[derive(Component, Reflect, Default, Debug, Clone)]
-#[require(Sprite)]
-#[reflect]
-pub struct AseSpriteSlice {
-    pub name: String,
-    pub aseprite: Handle<Aseprite>,
+pub trait AseSliceRender: Component {
+    fn render(&mut self, slice_meta: &SliceMeta, aseprite: &Aseprite);
 }
 
-fn update_aseprite_ui_slice(
-    mut cmd: Commands,
-    mut nodes: Query<
-        (Entity, &mut ImageNode, &AseUiSlice),
-        Or<(Without<FullyLoaded>, Changed<AseUiSlice>)>,
-    >,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    for (entity, mut image, slice) in nodes.iter_mut() {
-        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
-            continue;
-        };
-
-        let Some(slice) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not exists {}", slice.name);
-            continue;
-        };
-
-        image.image = aseprite.atlas_image.clone();
-        image.texture_atlas = Some(TextureAtlas {
+impl AseSliceRender for ImageNode {
+    fn render(&mut self, slice_meta: &SliceMeta, aseprite: &Aseprite) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
-            index: slice.atlas_id,
+            index: slice_meta.atlas_id,
         });
-
-        cmd.entity(entity).insert(FullyLoaded);
     }
 }
 
-fn update_aseprite_sprite_slice(
-    mut cmd: Commands,
-    mut nodes: Query<
-        (Entity, &mut Sprite, &AseSpriteSlice),
-        Or<(Without<FullyLoaded>, Changed<AseSpriteSlice>)>,
-    >,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    for (entity, mut sprite, slice) in nodes.iter_mut() {
-        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
-            continue;
-        };
-
-        let Some(slice) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not exists {}", slice.name);
-            continue;
-        };
-
-        sprite.anchor = Anchor::from(slice);
-        sprite.image = aseprite.atlas_image.clone();
-        sprite.texture_atlas = Some(TextureAtlas {
+impl AseSliceRender for Sprite {
+    fn render(&mut self, slice: &SliceMeta, aseprite: &Aseprite) {
+        self.anchor = Anchor::from(slice);
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
             index: slice.atlas_id,
         });
-
-        cmd.entity(entity).insert(FullyLoaded);
     }
 }
 
-fn hotreload_ui_slice(
+pub fn partial_update_aseprite_slice<F: FnMut(&AseSlice, &SliceMeta, &Aseprite)>(
+    cmd: &mut Commands,
+    entity: Entity,
+    slice: &AseSlice,
+    aseprites: &Res<Assets<Aseprite>>,
+    mut render: F,
+) {
+    let Some(aseprite) = aseprites.get(&slice.aseprite) else {
+        return;
+    };
+
+    let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
+        warn!("slice does not exists {}", slice.name);
+        return;
+    };
+
+    render(slice, slice_meta, aseprite);
+
+    cmd.entity(entity).insert(FullyLoaded);
+}
+
+fn update_aseprite_slice<T: AseSliceRender>(
+    mut cmd: Commands,
+    mut nodes: Query<(Entity, &mut T, &AseSlice), Or<(Without<FullyLoaded>, Changed<AseSlice>)>>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (entity, mut target, slice) in nodes.iter_mut() {
+        partial_update_aseprite_slice(
+            &mut cmd,
+            entity,
+            slice,
+            &aseprites,
+            |_slice, slice_meta, aseprite| {
+                target.render(slice_meta, aseprite);
+            }
+        );
+    }
+}
+
+fn hotreload_slice(
     mut cmd: Commands,
     mut events: EventReader<AssetEvent<Aseprite>>,
-    ui_slices: Query<(Entity, &AseUiSlice), With<FullyLoaded>>,
-    sprite_slices: Query<(Entity, &AseSpriteSlice), With<FullyLoaded>>,
+    slices: Query<(Entity, &AseSlice), With<FullyLoaded>>,
 ) {
     for event in events.read() {
         let AssetEvent::LoadedWithDependencies { id } = event else {
             continue;
         };
 
-        ui_slices
-            .iter()
-            .filter(|(_, slice)| slice.aseprite.id() == *id)
-            .for_each(|(entity, _)| {
-                cmd.entity(entity).remove::<FullyLoaded>();
-            });
-
-        sprite_slices
+        slices
             .iter()
             .filter(|(_, slice)| slice.aseprite.id() == *id)
             .for_each(|(entity, _)| {

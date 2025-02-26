@@ -76,15 +76,16 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     ));
 
     cmd.spawn((
-        AseSpriteSlice {
+        AseSlice {
             name: "ghost_red".into(),
             aseprite: server.load("ghost_slices.aseprite"),
         },
+        Sprite::default(),
         Transform::from_translation(Vec3::new(50., 0., 0.)),
     ));
 
     cmd.spawn((
-        AseSpriteSlice {
+        AseSlice {
             name: "ghost_blue".into(),
             aseprite: server.load("ghost_slices.aseprite"),
         },

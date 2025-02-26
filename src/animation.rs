@@ -42,11 +42,11 @@ pub struct AseAnimation  {
 pub struct ManualTick;
 
 /// Any Component implementing this trait will automatically be used as a render target
-pub trait AseRender: Component {
+pub trait AseAnimationRender: Component {
     fn render(&mut self, frame: u16, aseprite: &Aseprite);
 }
 
-impl AseRender for ImageNode {
+impl AseAnimationRender for ImageNode {
     fn render(&mut self, frame: u16, aseprite: &Aseprite) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
@@ -56,7 +56,7 @@ impl AseRender for ImageNode {
     }
 }
 
-impl AseRender for Sprite {
+impl AseAnimationRender for Sprite {
     fn render(&mut self, frame: u16, aseprite: &Aseprite) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
@@ -342,7 +342,7 @@ pub fn partial_update_aseprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)
     }
 }
 /// Upadtes and automatically renders to any component that implements AseRender
-fn update_aseprite_animation<T: AseRender>(
+fn update_aseprite_animation<T: AseAnimationRender>(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
@@ -362,7 +362,7 @@ fn update_aseprite_animation<T: AseRender>(
             &mut state,
             is_manual,
             &aseprites,
-            move |_animation, frame: u16, aseprite: &Aseprite| {
+            |_animation, frame: u16, aseprite: &Aseprite| {
                 target.render(frame, aseprite);
             },
             &time,
