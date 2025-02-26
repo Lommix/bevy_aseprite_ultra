@@ -14,7 +14,7 @@ fn main() {
         }))
         .add_plugins(AsepriteUltraPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, update_aseprite_animation_my_material)
+        .add_systems(Update, render_aseprite_animation_my_material)
         .add_plugins(Material2dPlugin::<MyMaterial>::default())
         .run();
 }
@@ -42,44 +42,33 @@ fn setup(
     ));
 }
 
-pub fn update_aseprite_animation_my_material(
-    mut cmd: Commands,
+pub fn render_aseprite_animation_my_material(
     mut animations: Query<(
-        Entity,
         &mut AseAnimation,
-        &mut AnimationState,
+        &AnimationState,
         &MeshMaterial2d<MyMaterial>,
-        Has<ManualTick>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
     mut aa_materials: ResMut<Assets<MyMaterial>>,
     time: Res<Time>,
     atlas_layouts: Res<Assets<TextureAtlasLayout>>,
 ) {
-    for (entity, animation, mut state, aa_material, is_manual) in &mut animations {
+    for (animation, state, aa_material) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
         let Some(aa_material) = aa_materials.get_mut(aa_material) else {
+            continue;
+        };
+        let Some(atlas_layout) = atlas_layouts.get(&aseprite.atlas_layout) else {
             return;
         };
-        partial_update_aseprite_animation(
-            &mut cmd,
-            entity,
-            animation.into_inner(),
-            &mut state,
-            is_manual,
-            &aseprites,
-            |_animation: &AseAnimation, frame: u16, aseprite: &Aseprite| {
-                let Some(atlas_layout) = atlas_layouts.get(&aseprite.atlas_layout) else {
-                    return;
-                };
-                aa_material.image = aseprite.atlas_image.clone();
-                let index = aseprite.get_atlas_index(usize::from(frame));
-                aa_material.texture_min = atlas_layout.textures[index].min;
-                aa_material.texture_max = atlas_layout.textures[index].max;
-                aa_material.texture_size = atlas_layout.size;
-                aa_material.time = time.elapsed_secs();
-            },
-            &time,
-        );
+        aa_material.image = aseprite.atlas_image.clone();
+        let index = aseprite.get_atlas_index(usize::from(state.current_frame));
+        aa_material.texture_min = atlas_layout.textures[index].min;
+        aa_material.texture_max = atlas_layout.textures[index].max;
+        aa_material.texture_size = atlas_layout.size;
+        aa_material.time = time.elapsed_secs();
     }
 }
 #[derive(AsBindGroup, Debug, Clone, Asset, TypePath, Default)]

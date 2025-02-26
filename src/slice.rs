@@ -10,8 +10,9 @@ impl Plugin for AsepriteSlicePlugin {
         app.add_systems(
             Update,
             (
-                update_aseprite_slice::<Sprite>,
-                update_aseprite_slice::<ImageNode>,
+                update_aseprite_slice,
+                render_aseprite_slice::<Sprite>.after(update_aseprite_slice),
+                render_aseprite_slice::<ImageNode>.after(update_aseprite_slice),
                 hotreload_slice.run_if(on_event::<AssetEvent<Aseprite>>),
             ),
         );
@@ -52,49 +53,39 @@ impl AseSliceRender for Sprite {
     }
 }
 
-pub fn partial_update_aseprite_slice<F: FnMut(&AseSlice, &SliceMeta, &Aseprite)>(
-    cmd: &mut Commands,
-    entity: Entity,
-    slice: &AseSlice,
-    aseprites: &Res<Assets<Aseprite>>,
-    mut render: F,
+/// Upadtes all `AseSlice`s
+fn update_aseprite_slice(
+    mut cmd: Commands,
+    mut nodes: Query<Entity, Or<((With<AseSlice>, Without<FullyLoaded>), Changed<AseSlice>)>>,
 ) {
-    let Some(aseprite) = aseprites.get(&slice.aseprite) else {
-        return;
-    };
-
-    let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
-        warn!("slice does not exists {}", slice.name);
-        return;
-    };
-
-    render(slice, slice_meta, aseprite);
-
-    cmd.entity(entity).insert(FullyLoaded);
+    for entity in nodes.iter_mut() {
+        cmd.entity(entity).insert(FullyLoaded);
+    }
 }
 
-fn update_aseprite_slice<T: AseSliceRender>(
-    mut cmd: Commands,
-    mut nodes: Query<(Entity, &mut T, &AseSlice), Or<(Without<FullyLoaded>, Changed<AseSlice>)>>,
+/// Renders all `AseSlice`s to any `Component` that implements `AseSliceRender`
+/// Implement AseAnimationRender for your own custom targets
+/// Or create your own render function as seen in the alternative_target example
+fn render_aseprite_slice<T: AseSliceRender>(
+    mut nodes: Query<(&mut T, &AseSlice), Or<(Added<FullyLoaded>, Changed<AseSlice>)>>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
-    for (entity, mut target, slice) in nodes.iter_mut() {
-        partial_update_aseprite_slice(
-            &mut cmd,
-            entity,
-            slice,
-            &aseprites,
-            |_slice, slice_meta, aseprite| {
-                target.render(slice_meta, aseprite);
-            }
-        );
+    for (mut target, slice) in nodes.iter_mut() {
+        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
+            return;
+        };
+        let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
+            warn!("slice does not exists {}", slice.name);
+            return;
+        };
+        target.render(slice_meta, aseprite);
     }
 }
 
 fn hotreload_slice(
     mut cmd: Commands,
     mut events: EventReader<AssetEvent<Aseprite>>,
-    slices: Query<(Entity, &AseSlice), With<FullyLoaded>>,
+    slices: Query<(Entity, &AseSlice)>,
 ) {
     for event in events.read() {
         let AssetEvent::LoadedWithDependencies { id } = event else {

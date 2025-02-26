@@ -11,8 +11,9 @@ impl Plugin for AsepriteAnimationPlugin {
         app.add_systems(
             Update,
             (
-                update_aseprite_animation::<Sprite>,
-                update_aseprite_animation::<ImageNode>,
+                update_aseprite_animation,
+                render_aseprite_animation::<Sprite>.after(update_aseprite_animation),
+                render_aseprite_animation::<ImageNode>.after(update_aseprite_animation),
             ),
         );
 
@@ -269,105 +270,95 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-/// Updates and allows rednering to a component that does not implement AseRender
-/// using a closure, this allows for more context to be used in the render function
-/// like Resources and Assets
-pub fn partial_update_aseprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)>(
-    cmd: &mut Commands,
-    entity: Entity,
-    animation: &mut AseAnimation,
-    state: &mut AnimationState,
-    is_manual: bool,
-    aseprites: &Res<Assets<Aseprite>>,
-    mut render: F,
-    time: &Res<Time>,
-) {
-    let Some(aseprite) = aseprites.get(&animation.aseprite) else {
-        return;
-    };
-
-    let range = match animation.animation.tag.as_ref() {
-        Some(tag) => aseprite
-            .tags
-            .get(tag)
-            .map(|meta| meta.range.clone())
-            .unwrap(),
-        None => 0..=(aseprite.frame_durations.len() as u16 - 1),
-    };
-
-    // has to check start and end! because hot reloading can cause
-    // animations to be outside of the animation range
-    if !range.contains(&state.current_frame) {
-        //Default code
-        if !animation.animation.hold_relative_frame {
-            state.current_frame = *range.start();
-            state.relative_frame = 0;
-            animation.animation.relative_group = 0;
-            animation.animation.new_relative_group = 0;
-
-        // Using relative frame switching
-        } else {
-            if animation.animation.new_relative_group != animation.animation.relative_group {
-                animation.animation.relative_group = animation.animation.new_relative_group;
-                state.current_frame = *range.start();
-                state.relative_frame = 0;
-                state.elapsed = std::time::Duration::ZERO;
-            } else {
-                state.relative_frame = (state.relative_frame) % (*range.end() * range.start() - 1);
-                state.current_frame = *range.start() + state.relative_frame;
-            }
-        }
-    }
-
-    render(animation, state.current_frame, aseprite);
-
-    if is_manual {
-        return;
-    }
-
-    state.elapsed +=
-        std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation.speed);
-
-    let Some(frame_duration) = aseprite
-        .frame_durations
-        .get(usize::from(state.current_frame))
-    else {
-        return;
-    };
-
-    if state.elapsed > *frame_duration {
-        cmd.trigger_targets(NextFrameEvent, entity);
-        state.elapsed =
-            Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
-    }
-}
-
-/// Upadtes and automatically renders to any component that implements AseRender
-fn update_aseprite_animation<T: AseAnimationRender>(
+/// Upadtes all `AseAnimation`s
+fn update_aseprite_animation(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
         &mut AseAnimation,
-        &mut T,
         &mut AnimationState,
         Has<ManualTick>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
 ) {
-    for (entity, mut animation, mut target, mut state, is_manual) in &mut animations {
-        partial_update_aseprite_animation(
-            &mut cmd,
-            entity,
-            &mut animation,
-            &mut state,
-            is_manual,
-            &aseprites,
-            |_animation, frame: u16, aseprite: &Aseprite| {
-                target.render(frame, aseprite);
-            },
-            &time,
-        );
+    for (entity, mut animation, mut state, is_manual) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
+
+        let range = match animation.animation.tag.as_ref() {
+            Some(tag) => aseprite
+                .tags
+                .get(tag)
+                .map(|meta| meta.range.clone())
+                .unwrap(),
+            None => 0..=(aseprite.frame_durations.len() as u16 - 1),
+        };
+    
+        // has to check start and end! because hot reloading can cause
+        // animations to be outside of the animation range
+        if !range.contains(&state.current_frame) {
+            //Default code
+            if !animation.animation.hold_relative_frame {
+                state.current_frame = *range.start();
+                state.relative_frame = 0;
+                animation.animation.relative_group = 0;
+                animation.animation.new_relative_group = 0;
+    
+            // Using relative frame switching
+            } else {
+                if animation.animation.new_relative_group != animation.animation.relative_group {
+                    animation.animation.relative_group = animation.animation.new_relative_group;
+                    state.current_frame = *range.start();
+                    state.relative_frame = 0;
+                    state.elapsed = std::time::Duration::ZERO;
+                } else {
+                    state.relative_frame = (state.relative_frame) % (*range.end() * range.start() - 1);
+                    state.current_frame = *range.start() + state.relative_frame;
+                }
+            }
+        }
+    
+        if is_manual {
+            return;
+        }
+    
+        state.elapsed +=
+            std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation.speed);
+    
+        let Some(frame_duration) = aseprite
+            .frame_durations
+            .get(usize::from(state.current_frame))
+        else {
+            return;
+        };
+    
+        if state.elapsed > *frame_duration {
+            cmd.trigger_targets(NextFrameEvent, entity);
+            state.elapsed =
+                Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
+        }
+    }
+}
+
+
+/// Renders all `AseAnimation`s to any `Component` that implements `AseAnimationRender`
+/// Implement AseAnimationRender for your own custom targets
+/// Or create your own render function as seen in the alternative_target example
+fn render_aseprite_animation<T: AseAnimationRender>(
+    mut animations: Query<(
+        &AseAnimation,
+        &mut T,
+        &AnimationState,
+    )>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    for (animation, mut target, state) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
+        target.render(state.current_frame, aseprite);
     }
 }
 
