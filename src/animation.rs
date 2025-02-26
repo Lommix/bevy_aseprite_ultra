@@ -341,6 +341,7 @@ pub fn partial_update_aseprite_animation<F: FnMut(&AseAnimation, u16, &Aseprite)
             Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
     }
 }
+
 /// Upadtes and automatically renders to any component that implements AseRender
 fn update_aseprite_animation<T: AseAnimationRender>(
     mut cmd: Commands,
