@@ -8,7 +8,13 @@ impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
         app.add_event::<NextFrameEvent>();
-        app.add_systems(Update, update_aseprite_animation);
+        app.add_systems(
+            Update,
+            (
+                update_aseprite_animation,
+                hotreload_animation.run_if(on_event::<AssetEvent<Aseprite>>),
+            ),
+        );
         app.add_animation_render_system((render_image_node, render_sprite));
 
         app.add_observer(next_frame);
@@ -47,7 +53,10 @@ pub struct AseAnimation {
 }
 
 fn render_image_node(
-    mut animations: Query<(&AseAnimation, &mut ImageNode, &AnimationState)>,
+    mut animations: Query<
+        (&AseAnimation, &mut ImageNode, &AnimationState),
+        Or<(With<FullyLoadedAnimation>, Changed<AseAnimation>)>,
+    >,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (animation, mut target, state) in &mut animations {
@@ -63,7 +72,10 @@ fn render_image_node(
 }
 
 fn render_sprite(
-    mut animations: Query<(&AseAnimation, &mut Sprite, &AnimationState)>,
+    mut animations: Query<
+        (&AseAnimation, &mut Sprite, &AnimationState),
+        Or<(With<FullyLoadedAnimation>, Changed<AseAnimation>)>,
+    >,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (animation, mut target, state) in &mut animations {
@@ -529,6 +541,25 @@ fn next_frame(
             }
         }
     };
+}
+
+fn hotreload_animation(
+    mut cmd: Commands,
+    mut events: EventReader<AssetEvent<Aseprite>>,
+    animations: Query<(Entity, &AseAnimation)>,
+) {
+    for event in events.read() {
+        let AssetEvent::LoadedWithDependencies { id } = event else {
+            continue;
+        };
+
+        animations
+            .iter()
+            .filter(|(_, animation)| animation.aseprite.id() == *id)
+            .for_each(|(entity, _)| {
+                cmd.entity(entity).insert(FullyLoadedAnimation);
+            });
+    }
 }
 
 /// component to signal a aseprite render is fully loaded.
