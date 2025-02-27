@@ -71,7 +71,3 @@ impl Plugin for AsepriteUltraPlugin {
         app.add_plugins(animation::AsepriteAnimationPlugin);
     }
 }
-
-/// component to signal a aseprite render is fully loaded.
-#[derive(Component, Default)]
-pub(crate) struct FullyLoaded;

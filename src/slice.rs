@@ -1,4 +1,4 @@
-use crate::{loader::Aseprite, FullyLoaded};
+use crate::loader::Aseprite;
 use bevy::{prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
@@ -8,7 +8,7 @@ impl Plugin for AsepriteSlicePlugin {
         app.add_systems(
             Update,
             (
-                update_aseprite_slice,
+                remove_fully_loaded_slice,
                 hotreload_slice.run_if(on_event::<AssetEvent<Aseprite>>),
             ),
         );
@@ -23,7 +23,7 @@ pub trait AddSliceRenderSystem {
 
 impl AddSliceRenderSystem for App {
     fn add_slice_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
-        self.add_systems(Update, systems.after(update_aseprite_slice));
+        self.add_systems(Update, systems.before(remove_fully_loaded_slice));
         self
     }
 }
@@ -37,7 +37,7 @@ pub struct AseSlice {
 }
 
 fn render_image_node(
-    mut nodes: Query<(&mut ImageNode, &AseSlice), Or<(Added<FullyLoaded>, Changed<AseSlice>)>>,
+    mut nodes: Query<(&mut ImageNode, &AseSlice), Or<(With<FullyLoadedSlice>, Changed<AseSlice>)>>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (mut target, slice) in nodes.iter_mut() {
@@ -57,7 +57,7 @@ fn render_image_node(
 }
 
 fn render_sprite(
-    mut nodes: Query<(&mut Sprite, &AseSlice), Or<(Added<FullyLoaded>, Changed<AseSlice>)>>,
+    mut nodes: Query<(&mut Sprite, &AseSlice), Or<(With<FullyLoadedSlice>, Changed<AseSlice>)>>,
     aseprites: Res<Assets<Aseprite>>,
 ) {
     for (mut target, slice) in nodes.iter_mut() {
@@ -77,16 +77,6 @@ fn render_sprite(
     }
 }
 
-/// Upadtes all `AseSlice`s
-fn update_aseprite_slice(
-    mut cmd: Commands,
-    mut nodes: Query<Entity, Or<((With<AseSlice>, Without<FullyLoaded>), Changed<AseSlice>)>>,
-) {
-    for entity in nodes.iter_mut() {
-        cmd.entity(entity).insert(FullyLoaded);
-    }
-}
-
 fn hotreload_slice(
     mut cmd: Commands,
     mut events: EventReader<AssetEvent<Aseprite>>,
@@ -101,7 +91,20 @@ fn hotreload_slice(
             .iter()
             .filter(|(_, slice)| slice.aseprite.id() == *id)
             .for_each(|(entity, _)| {
-                cmd.entity(entity).remove::<FullyLoaded>();
+                cmd.entity(entity).insert(FullyLoadedSlice);
             });
+    }
+}
+
+/// component to signal a aseprite render is fully loaded.
+#[derive(Component, Default)]
+pub struct FullyLoadedSlice;
+
+pub(crate) fn remove_fully_loaded_slice(
+    mut cmd: Commands,
+    mut nodes: Query<Entity, With<FullyLoadedSlice>>,
+) {
+    for entity in nodes.iter_mut() {
+        cmd.entity(entity).remove::<FullyLoadedSlice>();
     }
 }

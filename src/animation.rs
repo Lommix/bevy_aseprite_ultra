@@ -27,7 +27,12 @@ pub trait AddAnimationRenderSystem {
 
 impl AddAnimationRenderSystem for App {
     fn add_animation_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
-        self.add_systems(Update, systems.after(update_aseprite_animation));
+        self.add_systems(
+            Update,
+            systems
+                .after(update_aseprite_animation)
+                .before(remove_fully_loaded_animation),
+        );
         self
     }
 }
@@ -524,4 +529,17 @@ fn next_frame(
             }
         }
     };
+}
+
+/// component to signal a aseprite render is fully loaded.
+#[derive(Component, Default)]
+pub struct FullyLoadedAnimation;
+
+pub(crate) fn remove_fully_loaded_animation(
+    mut cmd: Commands,
+    mut nodes: Query<Entity, With<FullyLoadedAnimation>>,
+) {
+    for entity in nodes.iter_mut() {
+        cmd.entity(entity).remove::<FullyLoadedAnimation>();
+    }
 }
