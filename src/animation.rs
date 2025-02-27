@@ -12,7 +12,7 @@ impl Plugin for AsepriteAnimationPlugin {
             Update,
             (
                 update_aseprite_animation,
-                hotreload_animation.run_if(on_event::<AssetEvent<Aseprite>>),
+                // hotreload_animation.run_if(on_event::<AssetEvent<Aseprite>>),
             ),
         );
         app.add_animation_render_system((render_image_node, render_sprite));
@@ -35,9 +35,7 @@ impl AddAnimationRenderSystem for App {
     fn add_animation_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
         self.add_systems(
             Update,
-            systems
-                .after(update_aseprite_animation)
-                .before(remove_fully_loaded_animation),
+            systems.after(update_aseprite_animation), // .before(remove_fully_loaded_animation),
         );
         self
     }
@@ -55,7 +53,7 @@ pub struct AseAnimation {
 fn render_image_node(
     mut animations: Query<
         (&AseAnimation, &mut ImageNode, &AnimationState),
-        Or<(With<FullyLoadedAnimation>, Changed<AseAnimation>)>,
+        // Or<(With<FullyLoadedAnimation>, Changed<AseAnimation>)>,
     >,
     aseprites: Res<Assets<Aseprite>>,
 ) {
@@ -74,7 +72,7 @@ fn render_image_node(
 fn render_sprite(
     mut animations: Query<
         (&AseAnimation, &mut Sprite, &AnimationState),
-        Or<(With<FullyLoadedAnimation>, Changed<AseAnimation>)>,
+        // Or<(With<FullyLoadedAnimation>, Changed<AseAnimation>)>,
     >,
     aseprites: Res<Assets<Aseprite>>,
 ) {
@@ -543,34 +541,34 @@ fn next_frame(
     };
 }
 
-fn hotreload_animation(
-    mut cmd: Commands,
-    mut events: EventReader<AssetEvent<Aseprite>>,
-    animations: Query<(Entity, &AseAnimation)>,
-) {
-    for event in events.read() {
-        let AssetEvent::LoadedWithDependencies { id } = event else {
-            continue;
-        };
+// fn hotreload_animation(
+//     mut cmd: Commands,
+//     mut events: EventReader<AssetEvent<Aseprite>>,
+//     animations: Query<(Entity, &AseAnimation)>,
+// ) {
+//     for event in events.read() {
+//         let AssetEvent::LoadedWithDependencies { id } = event else {
+//             continue;
+//         };
 
-        animations
-            .iter()
-            .filter(|(_, animation)| animation.aseprite.id() == *id)
-            .for_each(|(entity, _)| {
-                cmd.entity(entity).insert(FullyLoadedAnimation);
-            });
-    }
-}
+//         animations
+//             .iter()
+//             .filter(|(_, animation)| animation.aseprite.id() == *id)
+//             .for_each(|(entity, _)| {
+//                 cmd.entity(entity).insert(FullyLoadedAnimation);
+//             });
+//     }
+// }
 
-/// component to signal a aseprite render is fully loaded.
-#[derive(Component, Default)]
-pub struct FullyLoadedAnimation;
+// / component to signal a aseprite render is fully loaded.
+// #[derive(Component, Default)]
+// pub struct FullyLoadedAnimation;
 
-pub(crate) fn remove_fully_loaded_animation(
-    mut cmd: Commands,
-    mut nodes: Query<Entity, With<FullyLoadedAnimation>>,
-) {
-    for entity in nodes.iter_mut() {
-        cmd.entity(entity).remove::<FullyLoadedAnimation>();
-    }
-}
+// pub(crate) fn remove_fully_loaded_animation(
+//     mut cmd: Commands,
+//     mut nodes: Query<Entity, With<FullyLoadedAnimation>>,
+// ) {
+//     for entity in nodes.iter_mut() {
+//         cmd.entity(entity).remove::<FullyLoadedAnimation>();
+//     }
+// }
