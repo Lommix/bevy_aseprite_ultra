@@ -71,6 +71,7 @@ pub fn render_aseprite_animation_my_material(
         aa_material.time = time.elapsed_secs();
     }
 }
+
 #[derive(AsBindGroup, Debug, Clone, Asset, TypePath, Default)]
 pub struct MyMaterial {
     #[texture(1)]
