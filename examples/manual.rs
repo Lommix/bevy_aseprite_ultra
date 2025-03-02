@@ -16,10 +16,11 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
 
     cmd.spawn((
-        AseSpriteAnimation {
+        AseAnimation {
             animation: Animation::tag("walk-right"),
             aseprite: server.load("player.aseprite"),
         },
+        Sprite::default(),
         Transform::from_translation(Vec3::new(15., 0., 0.)),
         ManualTick,
     ));
@@ -29,7 +30,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 
 fn update_frame(
     mut cmd: Commands,
-    animation_entity: Single<Entity, With<AseSpriteAnimation>>,
+    animation_entity: Single<Entity, With<AseAnimation>>,
     inputs: Res<ButtonInput<MouseButton>>,
 ) {
     if inputs.just_pressed(MouseButton::Left) {

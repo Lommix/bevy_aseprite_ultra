@@ -51,10 +51,11 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                 border: UiRect::all(Val::Px(5.)),
                 ..default()
             },
-            AseUiSlice {
+            AseSlice {
                 name: "ghost_red".into(),
                 aseprite: server.load("ghost_slices.aseprite"),
             },
+            ImageNode::default(),
             SliceCycle {
                 current: 0,
                 slices: vec!["ghost_red".into(), "ghost_blue".into()],
@@ -71,17 +72,18 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                 height: Val::Px(100.),
                 ..default()
             },
-            AseUiAnimation {
+            AseAnimation {
                 aseprite: server.load("player.aseprite").into(),
                 animation: Animation::default().with_tag("walk-right"),
             },
+            ImageNode::default(),
         ))
         .id();
 
     cmd.entity(div).add_child(animation);
 }
 
-fn change_slice(mut slices: Query<(&mut AseUiSlice, &mut SliceCycle)>) {
+fn change_slice(mut slices: Query<(&mut AseSlice, &mut SliceCycle)>) {
     slices.iter_mut().for_each(|(mut slice, mut cycle)| {
         cycle.current += 1;
         let index = cycle.current % cycle.slices.len();

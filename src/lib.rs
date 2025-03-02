@@ -11,12 +11,11 @@ pub(crate) mod slice;
 
 pub mod prelude {
     pub use crate::animation::{
-        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AnimationState,
-        AseSpriteAnimation, AseUiAnimation,  ManualTick, NextFrameEvent,
-        PlayDirection,
+        AddAnimationRenderSystem, Animation, AnimationDirection, AnimationEvents, AnimationRepeat,
+        AnimationState, AseAnimation, ManualTick, NextFrameEvent, PlayDirection,
     };
     pub use crate::loader::{Aseprite, AsepriteLoaderSettings};
-    pub use crate::slice::{AseSpriteSlice, AseUiSlice};
+    pub use crate::slice::{AddSliceRenderSystem, AseSlice};
     pub use crate::AsepriteUltraPlugin;
 }
 
@@ -72,7 +71,3 @@ impl Plugin for AsepriteUltraPlugin {
         app.add_plugins(animation::AsepriteAnimationPlugin);
     }
 }
-
-/// component to signal a aseprite render is fully loaded.
-#[derive(Component, Default)]
-pub(crate) struct FullyLoaded;
