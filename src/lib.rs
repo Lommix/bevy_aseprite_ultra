@@ -15,7 +15,7 @@ pub mod prelude {
         AseSpriteAnimation, AseUiAnimation,  ManualTick, NextFrameEvent,
         PlayDirection,
     };
-    pub use crate::loader::Aseprite;
+    pub use crate::loader::{Aseprite, AsepriteLoaderSettings};
     pub use crate::slice::{AseSpriteSlice, AseUiSlice};
     pub use crate::AsepriteUltraPlugin;
 }
