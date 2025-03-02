@@ -2,6 +2,7 @@ use crate::error::AsepriteError;
 use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
     asset::{io::Reader, AssetLoader},
+    image::ImageSampler,
     prelude::*,
     render::{
         render_asset::RenderAssetUsages,
@@ -10,6 +11,7 @@ use bevy::{
     sprite::Anchor,
     utils::HashMap,
 };
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub struct AsepriteLoaderPlugin;
@@ -73,15 +75,28 @@ impl From<&SliceMeta> for Anchor {
 #[derive(Default)]
 pub struct AsepriteLoader;
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AsepriteLoaderSettings {
+    pub sampler: ImageSampler,
+}
+
+impl Default for AsepriteLoaderSettings {
+    fn default() -> Self {
+        Self {
+            sampler: ImageSampler::nearest(),
+        }
+    }
+}
+
 impl AssetLoader for AsepriteLoader {
     type Asset = Aseprite;
-    type Settings = ();
+    type Settings = AsepriteLoaderSettings;
     type Error = super::error::AsepriteError;
 
     async fn load(
         &self,
         reader: &mut dyn Reader,
-        _settings: &Self::Settings,
+        settings: &Self::Settings,
         load_context: &mut bevy::asset::LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
@@ -104,17 +119,20 @@ impl AssetLoader for AsepriteLoader {
 
             let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
 
-            let image = Image::new(
-                Extent3d {
-                    width: width as u32,
-                    height: height as u32,
-                    depth_or_array_layers: 1,
-                },
-                TextureDimension::D2,
-                buffer.clone(),
-                TextureFormat::Rgba8UnormSrgb,
-                RenderAssetUsages::default(),
-            );
+            let image = Image {
+                sampler: settings.sampler.clone(),
+                ..Image::new(
+                    Extent3d {
+                        width: width as u32,
+                        height: height as u32,
+                        depth_or_array_layers: 1,
+                    },
+                    TextureDimension::D2,
+                    buffer.clone(),
+                    TextureFormat::Rgba8UnormSrgb,
+                    RenderAssetUsages::default(),
+                )
+            };
             images.push(image);
         }
 
