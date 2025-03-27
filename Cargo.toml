@@ -10,7 +10,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.16.0-rc.2", default-features = false, features = [
   "bevy_sprite",
   "bevy_asset",
   "bevy_ui",
@@ -23,7 +23,7 @@ serde = "1.0.218"
 
 
 [dev-dependencies]
-bevy = { version = "0.15", features = [
+bevy = { version = "0.16.0-rc.2", features = [
   "file_watcher",
   "multi_threaded",
   "bevy_window",

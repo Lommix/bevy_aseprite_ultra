@@ -1,5 +1,5 @@
 use aseprite_loader::loader::{LoadImageError, LoadSpriteError};
-use bevy::sprite::TextureAtlasBuilderError;
+use bevy::{asset::DuplicateLabelAssetError, image::TextureAtlasBuilderError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -12,4 +12,6 @@ pub enum AsepriteError {
     LoadingImageError(#[from] LoadImageError),
     #[error("failed to read byte stream to end")]
     ReadError,
+    #[error(transparent)]
+    DuplicateLabelAssetError(#[from] DuplicateLabelAssetError),
 }
