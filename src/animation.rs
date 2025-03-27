@@ -1,7 +1,7 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::{
-    ecs::{component::Mutable, system::ScheduleSystem},
+    ecs::component::Mutable,
     prelude::*,
 };
 use std::{collections::VecDeque, time::Duration};
