@@ -39,3 +39,8 @@ asset_processing = [
   "dep:image",
   "bevy/asset_processor",
 ]
+
+[[example]]
+name = "asset_processing"
+path = "examples/processing/asset_processing.rs"
+required-features = ["asset_processing"]

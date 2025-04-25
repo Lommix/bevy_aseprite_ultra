@@ -37,6 +37,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 cargo run --example slices
 cargo run --example animations
 cargo run --example ui
+cargo run --example asset_processing --features asset_processing
 ```
 
 ![Example](docs/example.gif)
