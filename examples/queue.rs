@@ -30,7 +30,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 fn events(mut events: EventReader<AnimationEvents>, mut cmd: Commands) {
     for event in events.read() {
         match event {
-            AnimationEvents::Finished(entity) => cmd.entity(*entity).despawn_recursive(),
+            AnimationEvents::Finished(entity) => cmd.entity(*entity).despawn(),
             AnimationEvents::LoopCycleFinished(_entity) => (),
         };
     }

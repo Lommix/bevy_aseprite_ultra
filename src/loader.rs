@@ -1,15 +1,10 @@
 use crate::error::AsepriteError;
 use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
-    asset::{io::Reader, AssetLoader},
-    image::ImageSampler,
-    prelude::*,
-    render::{
+    asset::{io::Reader, AssetLoader}, image::ImageSampler, platform_support::{collections::HashMap, hash::RandomState}, prelude::*, render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
-    },
-    sprite::Anchor,
-    utils::HashMap,
+    }, sprite::Anchor
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -27,8 +22,8 @@ impl Plugin for AsepriteLoaderPlugin {
 //to ship or bundle aseprite binaries into your release.
 #[derive(Asset, Default, TypePath, Debug)]
 pub struct Aseprite {
-    pub slices: HashMap<String, SliceMeta>,
-    pub tags: HashMap<String, TagMeta>,
+    pub slices: HashMap<String, SliceMeta, RandomState>,
+    pub tags: HashMap<String, TagMeta, RandomState>,
     pub frame_durations: Vec<std::time::Duration>,
     pub atlas_layout: Handle<TextureAtlasLayout>,
     pub atlas_image: Handle<Image>,
@@ -189,8 +184,8 @@ impl AssetLoader for AsepriteLoader {
             );
         });
 
-        let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
-        let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
+        let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout)?;
+        let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image)?;
 
         // ---------------------------- tags
         let mut tags = HashMap::new();
