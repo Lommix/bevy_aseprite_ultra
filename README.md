@@ -29,13 +29,9 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 - One shot animations and events when they finish.
 - Static sprites with slices. Use aseprite for all your icon and UI needs!
 - Render to custom material and write shaders ontop.
+- Asset processor which converts the aseprite file to a custom format.
 
 (hot reloading requires the `file_watcher` feature in bevy)
-
-## Embedding Assets
-
-There is currently no asset preprocessor. If you do not want to ship raw aseprite files, use [`bevy_embedded_assets`](https://github.com/vleue/bevy_embedded_assets)
-to embed your assets into the final binary.
 
 ## Example
 
@@ -43,6 +39,7 @@ to embed your assets into the final binary.
 cargo run --example slices
 cargo run --example animations
 cargo run --example ui
+cargo run --example asset_processing --features asset_processing
 ```
 
 ![Example](docs/example.gif)
@@ -135,3 +132,24 @@ cmd.spawn((
         },
 ));
 ```
+
+## Enable Asset Processing
+
+Simply enable asset processing in your `AssetPlugin` like so:
+
+```rust
+App::new()
+    .add_plugins(DefaultPlugins.set(AssetPlugin {
+        mode: AssetMode::Processed,
+        ..Default::default(),
+    }))
+    .run();
+```
+
+Then run with the feature `asset_processing` enabled, e.g.:
+
+```
+cargo run --features asset_processing
+```
+
+Then load your aseprite files in code as usual!

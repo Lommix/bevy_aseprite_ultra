@@ -21,13 +21,16 @@ impl Plugin for AsepriteLoaderPlugin {
 //represantion and can make use of the asset prepocessor. No longer need
 //to ship or bundle aseprite binaries into your release.
 #[derive(Asset, Default, TypePath, Debug)]
+#[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct Aseprite {
     pub slices: HashMap<String, SliceMeta>,
     pub tags: HashMap<String, TagMeta>,
     pub frame_durations: Vec<std::time::Duration>,
+    #[cfg_attr(feature = "asset_processing", serde(skip))]
     pub atlas_layout: Handle<TextureAtlasLayout>,
+    #[cfg_attr(feature = "asset_processing", serde(skip))]
     pub atlas_image: Handle<Image>,
-    frame_indicies: Vec<usize>,
+    pub(crate) frame_indicies: Vec<usize>,
 }
 
 impl Aseprite {
@@ -40,13 +43,27 @@ impl Aseprite {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct TagMeta {
+    #[cfg_attr(feature = "asset_processing", serde(with = "AnimationDirectionDef"))]
     pub direction: AnimationDirection,
     pub range: std::ops::RangeInclusive<u16>,
     pub repeat: u16,
 }
 
+#[cfg(feature = "asset_processing")]
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "AnimationDirection")]
+enum AnimationDirectionDef {
+    Forward,
+    Reverse,
+    PingPong,
+    PingPongReverse,
+    Unknown(u8),
+}
+
 #[derive(Debug)]
+#[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct SliceMeta {
     pub rect: Rect,
     pub atlas_id: usize,

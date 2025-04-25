@@ -7,6 +7,8 @@ use bevy::prelude::*;
 pub(crate) mod animation;
 pub(crate) mod error;
 pub(crate) mod loader;
+#[cfg(feature = "asset_processing")]
+pub(crate) mod processor;
 pub(crate) mod slice;
 
 pub mod prelude {
@@ -70,6 +72,8 @@ impl Plugin for AsepriteUltraPlugin {
         app.add_plugins(loader::AsepriteLoaderPlugin);
         app.add_plugins(slice::AsepriteSlicePlugin);
         app.add_plugins(animation::AsepriteAnimationPlugin);
+        #[cfg(feature = "asset_processing")]
+        app.add_plugins(processor::AsepriteProcessorPlugin);
     }
 }
 
