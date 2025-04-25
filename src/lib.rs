@@ -7,13 +7,14 @@ use bevy::prelude::*;
 pub(crate) mod animation;
 pub(crate) mod error;
 pub(crate) mod loader;
+#[cfg(feature = "asset_processing")]
+pub(crate) mod processor;
 pub(crate) mod slice;
 
 pub mod prelude {
     pub use crate::animation::{
         Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AnimationState,
-        AseSpriteAnimation, AseUiAnimation,  ManualTick, NextFrameEvent,
-        PlayDirection,
+        AseSpriteAnimation, AseUiAnimation, ManualTick, NextFrameEvent, PlayDirection,
     };
     pub use crate::loader::{Aseprite, AsepriteLoaderSettings};
     pub use crate::slice::{AseSpriteSlice, AseUiSlice};
@@ -70,6 +71,8 @@ impl Plugin for AsepriteUltraPlugin {
         app.add_plugins(loader::AsepriteLoaderPlugin);
         app.add_plugins(slice::AsepriteSlicePlugin);
         app.add_plugins(animation::AsepriteAnimationPlugin);
+        #[cfg(feature = "asset_processing")]
+        app.add_plugins(processor::AsepriteProcessorPlugin);
     }
 }
 
