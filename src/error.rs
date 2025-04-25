@@ -1,5 +1,5 @@
 use aseprite_loader::loader::{LoadImageError, LoadSpriteError};
-use bevy::sprite::TextureAtlasBuilderError;
+use bevy::image::TextureAtlasBuilderError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

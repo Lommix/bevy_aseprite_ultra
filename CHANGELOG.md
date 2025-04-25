@@ -1,3 +1,7 @@
+## 0.5
+
+- updated to bevy 0.16
+
 ## 0.4.1
 
 - fixed queue system, added example

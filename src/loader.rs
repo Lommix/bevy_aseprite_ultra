@@ -1,15 +1,10 @@
 use crate::error::AsepriteError;
 use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
-    asset::{io::Reader, AssetLoader},
-    image::ImageSampler,
-    prelude::*,
-    render::{
+    asset::{io::Reader, AssetLoader}, image::ImageSampler, platform::collections::HashMap, prelude::*, render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
-    },
-    sprite::Anchor,
-    utils::HashMap,
+    }, sprite::Anchor
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
