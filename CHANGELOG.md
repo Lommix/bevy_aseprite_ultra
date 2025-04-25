@@ -1,5 +1,6 @@
 ## 0.5
 
+- new asset processing feature. compile your aseprite sourefile for shipping. Comes with an example.
 - new shader example. Render animations to any custom material.
 - updated to bevy 0.16
 
