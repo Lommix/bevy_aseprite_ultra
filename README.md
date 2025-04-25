@@ -136,11 +136,11 @@ Simply enable asset processing in your `AssetPlugin` like so:
 
 ```rust
 App::new()
-  .add_plugins(DefaultPlugins.set(AssetPlugin {
-    mode: AssetMode::Processed,
-    ..Default::default(),
-  }))
-  .run();
+    .add_plugins(DefaultPlugins.set(AssetPlugin {
+        mode: AssetMode::Processed,
+        ..Default::default(),
+    }))
+    .run();
 ```
 
 Then run with the feature `asset_processing` enabled, e.g.:
