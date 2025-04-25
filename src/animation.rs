@@ -1,9 +1,6 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{
-    ecs::component::Mutable,
-    prelude::*,
-};
+use bevy::{ecs::component::Mutable, prelude::*};
 use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
@@ -11,16 +8,11 @@ impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
         app.add_event::<NextFrameEvent>();
-        app.add_systems(
-            Update,
-            (
-                update_aseprite_sprite_animation::<AseSpriteAnimation>,
-                update_aseprite_sprite_animation::<AseUiAnimation>,
-            ),
-        );
 
-        app.add_observer(next_frame::<AseSpriteAnimation>);
-        app.add_observer(next_frame::<AseUiAnimation>);
+        app.add_plugins((
+            MaterialAnimationPlugin::<AseUiAnimation>::default(),
+            MaterialAnimationPlugin::<AseSpriteAnimation>::default(),
+        ));
 
         app.register_type::<AseSpriteAnimation>();
         app.register_type::<AseUiAnimation>();
@@ -28,6 +20,21 @@ impl Plugin for AsepriteAnimationPlugin {
         app.register_type::<AnimationState>();
         app.register_type::<PlayDirection>();
         app.register_type::<AnimationRepeat>();
+    }
+}
+
+#[derive(Default)]
+pub struct MaterialAnimationPlugin<A: AseAnimation> {
+    _m: std::marker::PhantomData<A>,
+}
+
+impl<A> Plugin for MaterialAnimationPlugin<A>
+where
+    A: AseAnimation + Component<Mutability = Mutable>,
+{
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, update_aseprite_sprite_animation::<A>);
+        app.add_observer(next_frame::<A>);
     }
 }
 
@@ -57,13 +64,19 @@ pub struct AseUiAnimation {
 #[derive(Component)]
 pub struct ManualTick;
 
-trait AseAnimation {
-    type Target;
+pub trait AseAnimation {
+    type Target: Component<Mutability = Mutable>;
 
     fn aseprite(&self) -> &Handle<Aseprite>;
     fn animation(&self) -> &Animation;
     fn animation_mut(&mut self) -> &mut Animation;
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite);
+    fn render(
+        &self,
+        target: &mut Self::Target,
+        frame: u16,
+        aseprite: &Aseprite,
+        layout: &TextureAtlasLayout,
+    );
 }
 
 impl AseAnimation for AseUiAnimation {
@@ -81,7 +94,13 @@ impl AseAnimation for AseUiAnimation {
         &mut self.animation
     }
 
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
+    fn render(
+        &self,
+        target: &mut Self::Target,
+        frame: u16,
+        aseprite: &Aseprite,
+        _: &TextureAtlasLayout,
+    ) {
         target.image = aseprite.atlas_image.clone();
         target.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -104,7 +123,13 @@ impl AseAnimation for AseSpriteAnimation {
         &mut self.animation
     }
 
-    fn render(&self, target: &mut Self::Target, frame: u16, aseprite: &Aseprite) {
+    fn render(
+        &self,
+        target: &mut Self::Target,
+        frame: u16,
+        aseprite: &Aseprite,
+        _: &TextureAtlasLayout,
+    ) {
         target.image = aseprite.atlas_image.clone();
         target.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -316,7 +341,7 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-fn update_aseprite_sprite_animation<T>(
+pub fn update_aseprite_sprite_animation<T>(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
@@ -326,13 +351,19 @@ fn update_aseprite_sprite_animation<T>(
         Has<ManualTick>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
+    layouts: Res<Assets<TextureAtlasLayout>>,
     time: Res<Time>,
+    // mut res: ResMut<T::TargetRes>,
 ) where
     T: AseAnimation + Component<Mutability = Mutable>,
     T::Target: Component<Mutability = Mutable>,
 {
     for (entity, mut animation, mut state, mut target, is_manual) in animations.iter_mut() {
         let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+            continue;
+        };
+
+        let Some(layout) = layouts.get(&aseprite.atlas_layout) else {
             continue;
         };
 
@@ -372,7 +403,7 @@ fn update_aseprite_sprite_animation<T>(
             }
         }
 
-        animation.render(&mut target, state.current_frame, aseprite);
+        animation.render(&mut target, state.current_frame, aseprite, &layout);
 
         if is_manual {
             return;
@@ -399,7 +430,7 @@ fn update_aseprite_sprite_animation<T>(
 #[derive(Event)]
 pub struct NextFrameEvent;
 
-fn next_frame<T>(
+pub fn next_frame<T>(
     trigger: Trigger<NextFrameEvent>,
     mut events: EventWriter<AnimationEvents>,
     mut animations: Query<(&mut AnimationState, &mut T)>,
