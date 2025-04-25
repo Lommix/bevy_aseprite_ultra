@@ -1,5 +1,6 @@
 ## 0.5
 
+- new shader example. Render animations to any custom material.
 - updated to bevy 0.16
 
 ## 0.4.1
