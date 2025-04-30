@@ -25,11 +25,11 @@ impl Plugin for AsepriteAnimationPlugin {
 
 pub trait RenderAnimation {
     type Extra<'e>;
-    fn render_animation<'a>(
+    fn render_animation(
         &mut self,
         aseprite: &Aseprite,
         state: &AnimationState,
-        extra: &mut Self::Extra<'a>,
+        extra: &mut Self::Extra<'_>,
     );
 }
 
@@ -39,7 +39,7 @@ impl RenderAnimation for ImageNode {
         &mut self,
         aseprite: &Aseprite,
         state: &AnimationState,
-        _extra: &mut Self::Extra<'_>,
+        _extra: &mut (),
     ) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
@@ -55,7 +55,7 @@ impl RenderAnimation for Sprite {
         &mut self,
         aseprite: &Aseprite,
         state: &AnimationState,
-        _extra: &mut Self::Extra<'_>,
+        _extra: &mut (),
     ) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
