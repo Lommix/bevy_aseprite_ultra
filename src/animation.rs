@@ -1,22 +1,17 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{
-    ecs::{
-        component::Mutable,
-        schedule::{graph::GraphInfo, Chain, Schedulable, SystemSchedule},
-        system::ScheduleSystem,
-    },
-    prelude::*,
-};
-use std::{collections::VecDeque, ops::RangeInclusive, time::Duration};
+use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d};
+use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
 impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
         app.add_event::<NextFrameEvent>();
-        app.add_systems(Update, (update_aseprite_animation,));
-        app.add_animation_render_system((render_image_node, render_sprite));
+        app.add_systems(Update, update_aseprite_animation);
+
+        app.add_systems(Update, render_animation::<ImageNode>);
+        app.add_systems(Update, render_animation::<Sprite>);
 
         app.add_observer(next_frame);
 
@@ -28,20 +23,75 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
-pub trait AddAnimationRenderSystem {
-    fn add_animation_render_system<M>(
+pub trait RenderAnimation {
+    type Extra<'e>;
+    fn render_animation<'a>(
         &mut self,
-        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
-    ) -> &mut Self;
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'a>,
+    );
 }
 
-impl AddAnimationRenderSystem for App {
-    fn add_animation_render_system<M>(
+impl RenderAnimation for ImageNode {
+    type Extra<'e> = ();
+    fn render_animation(
         &mut self,
-        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
-    ) -> &mut Self {
-        self.add_systems(Update, systems.after(update_aseprite_animation));
-        self
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        _extra: &mut Self::Extra<'_>,
+    ) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
+        });
+    }
+}
+
+impl RenderAnimation for Sprite {
+    type Extra<'e> = ();
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        _extra: &mut Self::Extra<'_>,
+    ) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
+        });
+    }
+}
+
+impl<M: Material2d + RenderAnimation> RenderAnimation for MeshMaterial2d<M> {
+    type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        let Some(material) = extra.0.get_mut(&*self) else {
+            return;
+        };
+        material.render_animation(aseprite, state, &mut extra.1);
+    }
+}
+
+impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
+    type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        let Some(material) = extra.0.get_mut(&*self) else {
+            return;
+        };
+        material.render_animation(aseprite, state, &mut extra.1);
     }
 }
 
@@ -54,35 +104,16 @@ pub struct AseAnimation {
     pub aseprite: Handle<Aseprite>,
 }
 
-fn render_image_node(
-    mut animations: Query<(&AseAnimation, &mut ImageNode, &AnimationState)>,
+pub fn render_animation<T: RenderAnimation + Component<Mutability = Mutable>>(
+    mut animations: Query<(&AseAnimation, &mut T, &AnimationState)>,
     aseprites: Res<Assets<Aseprite>>,
+    mut extra: <T as RenderAnimation>::Extra<'_>,
 ) {
     for (animation, mut target, state) in &mut animations {
         let Some(aseprite) = aseprites.get(&animation.aseprite) else {
             continue;
         };
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
-        });
-    }
-}
-
-fn render_sprite(
-    mut animations: Query<(&AseAnimation, &mut Sprite, &AnimationState)>,
-    aseprites: Res<Assets<Aseprite>>,
-) {
-    for (animation, mut target, state) in &mut animations {
-        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
-            continue;
-        };
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
-        });
+        target.render_animation(aseprite, state, &mut extra);
     }
 }
 

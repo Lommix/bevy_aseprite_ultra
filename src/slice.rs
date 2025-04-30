@@ -1,36 +1,41 @@
-use crate::loader::Aseprite;
-use bevy::{
-    ecs::{
-        schedule::{graph::GraphInfo, Chain, Schedulable},
-        system::ScheduleSystem,
-    },
-    prelude::*,
-    sprite::Anchor,
-};
+use crate::loader::{Aseprite, SliceMeta};
+use bevy::{ecs::component::Mutable, prelude::*, sprite::Anchor};
 
 pub struct AsepriteSlicePlugin;
 
 impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
-        app.add_slice_render_system((render_image_node, render_sprite));
+        app.add_systems(Update, render_slice::<Sprite>);
+        app.add_systems(Update, render_slice::<Sprite>);
         app.register_type::<AseSlice>();
     }
 }
 
-pub trait AddSliceRenderSystem {
-    fn add_slice_render_system<M>(
-        &mut self,
-        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
-    ) -> &mut Self;
+pub trait RenderSlice {
+    type Extra;
+    fn render_slice(&mut self, aseprite: &Aseprite, slice_meta: &SliceMeta, extra: &Self::Extra);
 }
 
-impl AddSliceRenderSystem for App {
-    fn add_slice_render_system<M>(
-        &mut self,
-        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
-    ) -> &mut Self {
-        self.add_systems(Update, systems);
-        self
+impl RenderSlice for ImageNode {
+    type Extra = ();
+    fn render_slice(&mut self, aseprite: &Aseprite, slice_meta: &SliceMeta, _extra: &()) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: slice_meta.atlas_id,
+        });
+    }
+}
+
+impl RenderSlice for Sprite {
+    type Extra = ();
+    fn render_slice(&mut self, aseprite: &Aseprite, slice_meta: &SliceMeta, _extra: &()) {
+        self.anchor = Anchor::from(slice_meta);
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: slice_meta.atlas_id,
+        });
     }
 }
 
@@ -42,11 +47,12 @@ pub struct AseSlice {
     pub aseprite: Handle<Aseprite>,
 }
 
-fn render_image_node(
-    mut nodes: Query<(&mut ImageNode, &AseSlice)>,
+fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
+    mut nodes: Query<(&mut T, &AseSlice)>,
     aseprites: Res<Assets<Aseprite>>,
+    extra: <T as RenderSlice>::Extra,
 ) {
-    for (mut target, slice) in nodes.iter_mut() {
+    for (mut target, slice) in &mut nodes {
         let Some(aseprite) = aseprites.get(&slice.aseprite) else {
             return;
         };
@@ -54,28 +60,6 @@ fn render_image_node(
             warn!("slice does not exists {}", slice.name);
             return;
         };
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: slice_meta.atlas_id,
-        });
-    }
-}
-
-fn render_sprite(mut nodes: Query<(&mut Sprite, &AseSlice)>, aseprites: Res<Assets<Aseprite>>) {
-    for (mut target, slice) in nodes.iter_mut() {
-        let Some(aseprite) = aseprites.get(&slice.aseprite) else {
-            return;
-        };
-        let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not exists {}", slice.name);
-            return;
-        };
-        target.anchor = Anchor::from(slice_meta);
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: slice_meta.atlas_id,
-        });
+        target.render_slice(aseprite, slice_meta, &extra);
     }
 }

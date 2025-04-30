@@ -12,6 +12,7 @@ use bevy_aseprite_ultra::prelude::*;
  */
 
 fn main() {
+    let _ = render_animation::<MeshMaterial2d<MyMaterial>> as fn(_, _, _) -> _;
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: ImageSamplerDescriptor::nearest(),
@@ -19,42 +20,11 @@ fn main() {
         .add_plugins(AsepriteUltraPlugin)
         .add_plugins(Material2dPlugin::<MyMaterial>::default())
         .add_systems(Startup, setup)
-        .add_animation_render_system(render_aseprite_animation_my_material)
+        .add_systems(Update, render_animation::<MeshMaterial2d<MyMaterial>>)
         .run();
 }
 
-pub fn render_aseprite_animation_my_material(
-    mut animations: Query<(
-        &mut AseAnimation,
-        &AnimationState,
-        &MeshMaterial2d<MyMaterial>,
-    )>,
-    aseprites: Res<Assets<Aseprite>>,
-    mut aa_materials: ResMut<Assets<MyMaterial>>,
-    time: Res<Time>,
-    atlas_layouts: Res<Assets<TextureAtlasLayout>>,
-) {
-    for (animation, state, aa_material) in &mut animations {
-        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
-            continue;
-        };
-        let Some(aa_material) = aa_materials.get_mut(aa_material) else {
-            continue;
-        };
-        let Some(atlas_layout) = atlas_layouts.get(&aseprite.atlas_layout) else {
-            return;
-        };
-        aa_material.image = aseprite.atlas_image.clone();
-        let index = aseprite.get_atlas_index(usize::from(state.current_frame));
-        aa_material.texture_min = atlas_layout.textures[index].min;
-        aa_material.texture_max = atlas_layout.textures[index].max;
-        aa_material.time = time.elapsed_secs();
-    }
-}
-
-// We make our asset a component at the same time, since the trait can only target components.
-// Later we need a glue system to sync the change back to the material.
-#[derive(AsBindGroup, Component, Debug, Clone, Asset, TypePath, Default)]
+#[derive(AsBindGroup, Debug, Clone, Asset, TypePath, Default)]
 pub struct MyMaterial {
     #[texture(1)]
     #[sampler(2)]
@@ -70,6 +40,28 @@ pub struct MyMaterial {
 impl Material2d for MyMaterial {
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
         "my_shader.wgsl".into()
+    }
+    fn alpha_mode(&self) -> bevy::sprite::AlphaMode2d {
+        bevy::sprite::AlphaMode2d::Blend
+    }
+}
+
+impl RenderAnimation for MyMaterial {
+    type Extra<'e> = (Res<'e, Time>, Res<'e, Assets<TextureAtlasLayout>>);
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        let Some(atlas_layout) = extra.1.get(&aseprite.atlas_layout) else {
+            return;
+        };
+        self.image = aseprite.atlas_image.clone();
+        let index = aseprite.get_atlas_index(usize::from(state.current_frame));
+        self.texture_min = atlas_layout.textures[index].min;
+        self.texture_max = atlas_layout.textures[index].max;
+        self.time = extra.0.elapsed_secs();
     }
 }
 
