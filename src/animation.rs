@@ -1,6 +1,13 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{ecs::component::Mutable, prelude::*};
+use bevy::{
+    ecs::{
+        component::Mutable,
+        schedule::{graph::GraphInfo, Chain, Schedulable, SystemSchedule},
+        system::ScheduleSystem,
+    },
+    prelude::*,
+};
 use std::{collections::VecDeque, ops::RangeInclusive, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
@@ -21,27 +28,18 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
-// #[derive(Default)]
-// pub struct MaterialAnimationPlugin<A: AseAnimation> {
-//     _m: std::marker::PhantomData<A>,
-// }
-
-// impl<A> Plugin for MaterialAnimationPlugin<A>
-// where
-//     A: AseAnimation + Component<Mutability = Mutable>,
-// {
-//     fn build(&self, app: &mut App) {
-//         app.add_systems(Update, update_aseprite_sprite_animation::<A>);
-//         app.add_observer(next_frame::<A>);
-//     }
-// }
-
 pub trait AddAnimationRenderSystem {
-    fn add_animation_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self;
+    fn add_animation_render_system<M>(
+        &mut self,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self;
 }
 
 impl AddAnimationRenderSystem for App {
-    fn add_animation_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
+    fn add_animation_render_system<M>(
+        &mut self,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self {
         self.add_systems(Update, systems.after(update_aseprite_animation));
         self
     }
@@ -181,12 +179,6 @@ impl Animation {
         repeat: AnimationRepeat,
         new_relative_group: u16,
     ) {
-    pub fn play_with_relative_group(
-        &mut self,
-        tag: impl Into<String>,
-        repeat: AnimationRepeat,
-        new_relative_group: u16,
-    ) {
         self.tag = Some(tag.into());
         self.new_relative_group = new_relative_group;
         self.repeat = repeat;
@@ -303,7 +295,8 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-pub fn update_aseprite_sprite_animation<T>(
+pub fn update_aseprite_animation(
+    //<T>(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
@@ -312,24 +305,14 @@ pub fn update_aseprite_sprite_animation<T>(
         Has<ManualTick>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
-    layouts: Res<Assets<TextureAtlasLayout>>,
     time: Res<Time>,
-    // mut res: ResMut<T::TargetRes>,
-) where
-    T: AseAnimation + Component<Mutability = Mutable>,
-    T::Target: Component<Mutability = Mutable>,
-{
-    for (entity, mut animation, mut state, mut target, is_manual) in animations.iter_mut() {
-        let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+) {
+    for (entity, mut animation, mut state, is_manual) in animations.iter_mut() {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
             continue;
         };
 
-        let Some(layout) = layouts.get(&aseprite.atlas_layout) else {
-            continue;
-        };
-
-    
-        let range = match animation.animation().tag.as_ref() {
+        let range = match animation.animation.tag.as_ref() {
             Some(tag) => aseprite
                 .tags
                 .get(tag)
@@ -393,8 +376,8 @@ fn next_frame(
     mut events: EventWriter<AnimationEvents>,
     mut animations: Query<(&mut AnimationState, &mut AseAnimation)>,
     aseprites: Res<Assets<Aseprite>>,
-) where
-    T: AseAnimation + Component<Mutability = Mutable>,
+) //where
+//T: AseAnimation + Component<Mutability = Mutable>,
 {
     let Ok((mut state, mut ase)) = animations.get_mut(trigger.target()) else {
         return;
@@ -465,7 +448,7 @@ fn next_frame(
                 match animation.repeat {
                     AnimationRepeat::Loop => {
                         state.current_frame = range.end() - 1;
-                        state.relative_frame = range.end() - range.start() -  1;
+                        state.relative_frame = range.end() - range.start() - 1;
                         events.write(AnimationEvents::LoopCycleFinished(trigger.target()));
                     }
                     AnimationRepeat::Count(count) => {
@@ -492,7 +475,6 @@ fn next_frame(
         }
         AnimationDirection::PingPong | AnimationDirection::PingPongReverse => {
             let (next, relative_next) = match state.current_direction {
-
                 PlayDirection::Forward => (state.current_frame + 1, state.relative_frame + 1),
                 PlayDirection::Backward => (
                     state.relative_frame.checked_sub(1).unwrap_or(0),
@@ -511,7 +493,7 @@ fn next_frame(
                         state.current_direction = PlayDirection::Backward;
                         state.current_frame = range.end() - 2;
                         state.relative_frame = range.end() - range.start() - 2;
-                        events.send(AnimationEvents::LoopCycleFinished(trigger.entity()));
+                        events.write(AnimationEvents::LoopCycleFinished(trigger.target()));
                     }
                     AnimationRepeat::Count(count) => {
                         if count > 0 {

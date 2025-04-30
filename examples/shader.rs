@@ -18,50 +18,37 @@ fn main() {
         }))
         .add_plugins(AsepriteUltraPlugin)
         .add_plugins(Material2dPlugin::<MyMaterial>::default())
-        .add_plugins(MaterialAnimationPlugin::<MyAnimation>::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, sync_mat_and_update_time)
+        .add_animation_render_system(render_aseprite_animation_my_material)
         .run();
 }
 
-// create our own aseprite animation component
-#[derive(Default, Component)]
-#[require(AnimationState, MyMaterial, Transform)]
-pub struct MyAnimation {
-    ase: Handle<Aseprite>,
-    animation: Animation,
-}
-
-impl AseAnimation for MyAnimation {
-    type Target = MyMaterial; // each time the frame changes, a system will mut this Component in
-                              // the render function below.
-
-    fn aseprite(&self) -> &Handle<Aseprite> {
-        &self.ase
-    }
-
-    fn animation(&self) -> &Animation {
-        &self.animation
-    }
-
-    fn animation_mut(&mut self) -> &mut Animation {
-        &mut self.animation
-    }
-
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-        layout: &TextureAtlasLayout,
-    ) {
-        let id = aseprite.get_atlas_index(frame as usize);
-        let Some(rect) = layout.textures.get(id) else {
+pub fn render_aseprite_animation_my_material(
+    mut animations: Query<(
+        &mut AseAnimation,
+        &AnimationState,
+        &MeshMaterial2d<MyMaterial>,
+    )>,
+    aseprites: Res<Assets<Aseprite>>,
+    mut aa_materials: ResMut<Assets<MyMaterial>>,
+    time: Res<Time>,
+    atlas_layouts: Res<Assets<TextureAtlasLayout>>,
+) {
+    for (animation, state, aa_material) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
+        let Some(aa_material) = aa_materials.get_mut(aa_material) else {
+            continue;
+        };
+        let Some(atlas_layout) = atlas_layouts.get(&aseprite.atlas_layout) else {
             return;
         };
-        target.image = aseprite.atlas_image.clone();
-        target.texture_min = rect.min;
-        target.texture_max = rect.max;
+        aa_material.image = aseprite.atlas_image.clone();
+        let index = aseprite.get_atlas_index(usize::from(state.current_frame));
+        aa_material.texture_min = atlas_layout.textures[index].min;
+        aa_material.texture_max = atlas_layout.textures[index].max;
+        aa_material.time = time.elapsed_secs();
     }
 }
 
@@ -94,26 +81,11 @@ fn setup(
 ) {
     cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
     cmd.spawn((
-        MyAnimation {
-            ase: server.load("player.aseprite"),
+        AseAnimation {
+            aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-down"),
         },
         Mesh2d(meshes.add(Mesh::from(Rectangle::from_size(Vec2::splat(100.0))))),
         MeshMaterial2d(materials.add(MyMaterial::default())),
     ));
-}
-
-fn sync_mat_and_update_time(
-    comps: Query<(&MeshMaterial2d<MyMaterial>, &MyMaterial)>,
-    mut materials: ResMut<Assets<MyMaterial>>,
-    time: Res<Time>,
-) {
-    comps.iter().for_each(|(h, mat)| {
-        if let Some(m) = materials.get_mut(h.id()) {
-            m.texture_min = mat.texture_min;
-            m.texture_max = mat.texture_max;
-            m.time = time.elapsed().as_secs_f32();
-            m.image = mat.image.clone();
-        }
-    });
 }

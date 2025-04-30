@@ -1,5 +1,12 @@
 use crate::loader::Aseprite;
-use bevy::{prelude::*, sprite::Anchor};
+use bevy::{
+    ecs::{
+        schedule::{graph::GraphInfo, Chain, Schedulable},
+        system::ScheduleSystem,
+    },
+    prelude::*,
+    sprite::Anchor,
+};
 
 pub struct AsepriteSlicePlugin;
 
@@ -11,11 +18,17 @@ impl Plugin for AsepriteSlicePlugin {
 }
 
 pub trait AddSliceRenderSystem {
-    fn add_slice_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self;
+    fn add_slice_render_system<M>(
+        &mut self,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self;
 }
 
 impl AddSliceRenderSystem for App {
-    fn add_slice_render_system<M>(&mut self, systems: impl IntoSystemConfigs<M>) -> &mut Self {
+    fn add_slice_render_system<M>(
+        &mut self,
+        systems: impl IntoScheduleConfigs<ScheduleSystem, M>,
+    ) -> &mut Self {
         self.add_systems(Update, systems);
         self
     }
