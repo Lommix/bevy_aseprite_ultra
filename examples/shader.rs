@@ -4,7 +4,8 @@ use bevy::{
     image::ImageSamplerDescriptor,
     prelude::*,
     render::render_resource::AsBindGroup,
-    sprite::{Material2d, Material2dPlugin}, time::common_conditions::on_timer,
+    sprite::{Material2d, Material2dPlugin},
+    time::common_conditions::on_timer,
 };
 use bevy_aseprite_ultra::prelude::*;
 

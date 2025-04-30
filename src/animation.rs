@@ -1,6 +1,10 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d};
+use bevy::{
+    ecs::{component::Mutable},
+    prelude::*,
+    sprite::Material2d,
+};
 use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
@@ -35,12 +39,7 @@ pub trait RenderAnimation {
 
 impl RenderAnimation for ImageNode {
     type Extra<'e> = ();
-    fn render_animation(
-        &mut self,
-        aseprite: &Aseprite,
-        state: &AnimationState,
-        _extra: &mut (),
-    ) {
+    fn render_animation(&mut self, aseprite: &Aseprite, state: &AnimationState, _extra: &mut ()) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -51,12 +50,7 @@ impl RenderAnimation for ImageNode {
 
 impl RenderAnimation for Sprite {
     type Extra<'e> = ();
-    fn render_animation(
-        &mut self,
-        aseprite: &Aseprite,
-        state: &AnimationState,
-        _extra: &mut (),
-    ) {
+    fn render_animation(&mut self, aseprite: &Aseprite, state: &AnimationState, _extra: &mut ()) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -327,7 +321,6 @@ impl From<u16> for AnimationRepeat {
 }
 
 pub fn update_aseprite_animation(
-    //<T>(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
@@ -407,9 +400,7 @@ fn next_frame(
     mut events: EventWriter<AnimationEvents>,
     mut animations: Query<(&mut AnimationState, &mut AseAnimation)>,
     aseprites: Res<Assets<Aseprite>>,
-) //where
-//T: AseAnimation + Component<Mutability = Mutable>,
-{
+) {
     let Ok((mut state, mut ase)) = animations.get_mut(trigger.target()) else {
         return;
     };

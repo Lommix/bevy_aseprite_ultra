@@ -1,5 +1,9 @@
 use crate::loader::{Aseprite, SliceMeta};
-use bevy::{ecs::component::Mutable, prelude::*, sprite::{Anchor, Material2d}};
+use bevy::{
+    ecs::component::Mutable,
+    prelude::*,
+    sprite::{Anchor, Material2d},
+};
 
 pub struct AsepriteSlicePlugin;
 
