@@ -15,8 +15,8 @@ fn fragment(
     let uv_max = vec2f(texture_max) / vec2f(size);
     let uv = mix(uv_min, uv_max, v.uv);
     var col = textureSample(t, s, uv);
-    col.x += 0.2 * sin(1.2 * time);
-    col.y += 0.2 * sin(3.0 * time + 0.5);
-    col.z += 0.2 * sin(0.4 * time + 1.0);
+    col.x += 0.1 * sin(1.2 * time);
+    col.y += 0.1 * sin(3.0 * time + 0.5);
+    col.z += 0.1 * sin(0.4 * time + 1.0);
     return col;
 }

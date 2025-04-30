@@ -13,11 +13,11 @@ pub(crate) mod slice;
 
 pub mod prelude {
     pub use crate::animation::{
-        Animation, AnimationDirection, AnimationEvents, AnimationRepeat, AnimationState,
-        AseAnimation, ManualTick, NextFrameEvent, PlayDirection, RenderAnimation, render_animation,
+        render_animation, Animation, AnimationDirection, AnimationEvents, AnimationRepeat,
+        AnimationState, AseAnimation, ManualTick, NextFrameEvent, PlayDirection, RenderAnimation,
     };
-    pub use crate::loader::{Aseprite, AsepriteLoaderSettings};
-    pub use crate::slice::{AseSlice, RenderSlice};
+    pub use crate::loader::{Aseprite, AsepriteLoaderSettings, SliceMeta};
+    pub use crate::slice::{render_slice, AseSlice, RenderSlice};
     pub use crate::AsepriteUltraPlugin;
 }
 

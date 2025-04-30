@@ -82,7 +82,7 @@ pub struct AseSlice {
     pub aseprite: Handle<Aseprite>,
 }
 
-fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
+pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
     mut nodes: Query<(&mut T, &AseSlice)>,
     aseprites: Res<Assets<Aseprite>>,
     mut extra: <T as RenderSlice>::Extra<'_>,

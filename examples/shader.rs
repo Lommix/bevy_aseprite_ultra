@@ -1,8 +1,10 @@
+use std::time::Duration;
+
 use bevy::{
     image::ImageSamplerDescriptor,
     prelude::*,
     render::render_resource::AsBindGroup,
-    sprite::{Material2d, Material2dPlugin},
+    sprite::{Material2d, Material2dPlugin}, time::common_conditions::on_timer,
 };
 use bevy_aseprite_ultra::prelude::*;
 
@@ -12,7 +14,6 @@ use bevy_aseprite_ultra::prelude::*;
  */
 
 fn main() {
-    let _ = render_animation::<MeshMaterial2d<MyMaterial>> as fn(_, _, _) -> _;
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin {
             default_sampler: ImageSamplerDescriptor::nearest(),
@@ -21,6 +22,11 @@ fn main() {
         .add_plugins(Material2dPlugin::<MyMaterial>::default())
         .add_systems(Startup, setup)
         .add_systems(Update, render_animation::<MeshMaterial2d<MyMaterial>>)
+        .add_systems(Update, render_slice::<MeshMaterial2d<MyMaterial>>)
+        .add_systems(
+            Update,
+            change_slice.run_if(on_timer(Duration::from_secs(2))),
+        )
         .run();
 }
 
@@ -65,6 +71,21 @@ impl RenderAnimation for MyMaterial {
     }
 }
 
+impl RenderSlice for MyMaterial {
+    type Extra<'e> = Res<'e, Time>;
+    fn render_slice(
+        &mut self,
+        aseprite: &Aseprite,
+        slice_meta: &SliceMeta,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_min = slice_meta.rect.min.as_uvec2();
+        self.texture_max = slice_meta.rect.max.as_uvec2();
+        self.time = extra.elapsed_secs();
+    }
+}
+
 fn setup(
     mut cmd: Commands,
     server: Res<AssetServer>,
@@ -79,5 +100,40 @@ fn setup(
         },
         Mesh2d(meshes.add(Mesh::from(Rectangle::from_size(Vec2::splat(100.0))))),
         MeshMaterial2d(materials.add(MyMaterial::default())),
+        Transform {
+            translation: vec3(-50.0, 0.0, 0.0),
+            ..default()
+        },
     ));
+    cmd.spawn((
+        AseSlice {
+            name: "ghost_red".into(),
+            aseprite: server.load("ghost_slices.aseprite"),
+        },
+        Mesh2d(meshes.add(Mesh::from(Rectangle::from_size(Vec2::splat(100.0))))),
+        MeshMaterial2d(materials.add(MyMaterial::default())),
+        Transform {
+            translation: vec3(50.0, 0.0, 0.0),
+            ..default()
+        },
+        SliceCycle {
+            current: 0,
+            slices: vec!["ghost_red".into(), "ghost_blue".into()],
+        },
+    ));
+}
+
+#[derive(Component)]
+pub struct SliceCycle {
+    current: usize,
+    slices: Vec<String>,
+}
+
+fn change_slice(mut slices: Query<(&mut AseSlice, &mut SliceCycle)>) {
+    slices.iter_mut().for_each(|(mut slice, mut cycle)| {
+        cycle.current += 1;
+        let index = cycle.current % cycle.slices.len();
+        slice.name = cycle.slices[index].clone();
+        info!("slice changed to {}", slice.name);
+    });
 }
