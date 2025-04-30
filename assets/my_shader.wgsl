@@ -10,11 +10,9 @@
 fn fragment(
     v: VertexOutput,
 ) -> @location(0) vec4<f32> {
-
     let size = textureDimensions(t);
     let uv_min = vec2f(texture_min) / vec2f(size);
     let uv_max = vec2f(texture_max) / vec2f(size);
-
     let uv = mix(uv_min, uv_max, v.uv);
     var col = textureSample(t, s, uv);
     col.x += 0.2 * sin(1.2 * time);

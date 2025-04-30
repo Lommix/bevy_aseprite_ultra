@@ -16,13 +16,14 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
 
     cmd.spawn((
-        AseSpriteAnimation {
+        AseAnimation {
             animation: Animation::tag("idle")
                 .with_repeat(AnimationRepeat::Count(1))
                 .with_then("walk-right", AnimationRepeat::Count(1)),
 
             aseprite: server.load("player.aseprite"),
         },
+        Sprite::default(),
         Transform::from_translation(Vec3::new(15., 0., 0.)),
     ));
 }
