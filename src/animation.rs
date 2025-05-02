@@ -1,10 +1,6 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{
-    ecs::{component::Mutable},
-    prelude::*,
-    sprite::Material2d,
-};
+use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d};
 use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
