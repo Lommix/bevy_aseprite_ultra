@@ -70,10 +70,9 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
                 .with_then("walk-left", AnimationRepeat::Count(4))
                 .with_then("walk-up", AnimationRepeat::Loop),
         },
+        // The Render target. There are default impls for Sprite, Ui and 3D.
+        // You may also define your own. Checkout the examples.
         Sprite {
-            // under the hood its just sprites.
-            // only the image and atlas is touched.
-            // this works
             flip_x: true,
             ..default()
         },
@@ -127,6 +126,7 @@ cmd.spawn((
             border: UiRect::all(Val::Px(5.)),
             ..default()
         },
+        ImageNode::default(), // RenderTarget
         AseSlice {
             name: "ghost_red".into(),
             aseprite: server.load("ghost_slices.aseprite"),
