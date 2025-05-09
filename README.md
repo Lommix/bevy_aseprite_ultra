@@ -112,25 +112,27 @@ There is also an Ui Bundle for Bevy Ui Nodes!
 ```rust
 // animations in bevy ui
 cmd.spawn((
-        Button,
-        AseAnimation {
-            aseprite: server.load("player.aseprite"),
-            animation: Animation::tag("walk-right"),
-        },
+    Button,
+    AseAnimation {
+        aseprite: server.load("player.aseprite"),
+        animation: Animation::tag("walk-right"),
+    },
+    ImageNode::default(),
 ));
 
 // slices in bevy ui
 cmd.spawn((
-        Node {
-            width: Val::Px(100.),
-            height: Val::Px(100.),
-            border: UiRect::all(Val::Px(5.)),
-            ..default()
-        },
-        AseSlice {
-            name: "ghost_red".into(),
-            aseprite: server.load("ghost_slices.aseprite"),
-        },
+    Node {
+        width: Val::Px(100.),
+        height: Val::Px(100.),
+        border: UiRect::all(Val::Px(5.)),
+        ..default()
+    },
+    AseSlice {
+        name: "ghost_red".into(),
+        aseprite: server.load("ghost_slices.aseprite"),
+    },
+    ImageNode::default(),
 ));
 ```
 
