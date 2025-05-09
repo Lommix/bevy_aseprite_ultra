@@ -15,7 +15,27 @@ impl Plugin for AsepriteSlicePlugin {
     }
 }
 
+/// Anything component that implements this trait is a render target for [`AseSlice`]
+///
+/// # Examples
+/// ```
+/// impl RenderSlice for MyMaterial {
+///     type Extra<'e> = Res<'e, Time>;
+///     fn render_slice(
+///         &mut self,
+///         aseprite: &Aseprite,
+///         slice_meta: &SliceMeta,
+///         extra: &mut Self::Extra<'_>,
+///     ) {
+///         self.image = aseprite.atlas_image.clone();
+///         self.texture_min = slice_meta.rect.min.as_uvec2();
+///         self.texture_max = slice_meta.rect.max.as_uvec2();
+///         self.time = extra.elapsed_secs();
+///     }
+/// }
+/// ```
 pub trait RenderSlice {
+    /// An extra system parameter used in rendering. Use a tuple if many are required.
     type Extra<'e>;
     fn render_slice(
         &mut self,
