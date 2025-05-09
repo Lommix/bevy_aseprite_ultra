@@ -11,6 +11,7 @@ readme = "README.md"
 
 [dependencies]
 bevy = { version = "0.16", default-features = false, features = [
+  "bevy_pbr",
   "bevy_sprite",
   "bevy_asset",
   "bevy_ui",
@@ -30,7 +31,6 @@ bevy = { version = "0.16", features = [
   "file_watcher",
   "multi_threaded",
   "bevy_window",
-  "bevy_pbr",
 ] }
 
 [features]
