@@ -30,6 +30,7 @@ bevy = { version = "0.16", features = [
   "file_watcher",
   "multi_threaded",
   "bevy_window",
+  "bevy_pbr",
 ] }
 
 [features]
