@@ -1,2 +1,4 @@
 /target
 /Cargo.lock
+/examples/processing/imported_assets
+/imported_assets

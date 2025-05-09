@@ -1,3 +1,12 @@
+## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHANGE THIS HEADING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+- removed `AseAnimation` trait.
+- new `AseAnimation` component instead of `AseSpriteAnimation` and `AseUiAnimation` which renders its animation onto any component which implements `RenderAnimation`.
+- new `AseSlice` component instead of `AseSpriteAnimation` and `AseUiAnimation` which renders its slices onto any component which implements `RenderSlice`.
+- implementation of `RenderAnimation` and `RenderSlice` for `Sprite` and `ImageNode`. So now, instead of using an `AseSpriteAnimation` component, use an `AseAmination` component and a `Sprite` component (see the animation example).
+- implementations of `RenderAnimation` and `RenderSlice` for `MeshMaterial2d` and `MeshMaterial3d` for any `Material2d` or `Material` that also implements `RenderAnimation` or `RenderSlice`. So now, implement `RenderAnimation` for your material and add the `render_animation::<MeshMaterial2d<MyMaterial>>` system (see the shader and 3d examples).
+- removed requirement for materials to be components.
+
 ## 0.5
 
 - new asset processing feature. compile your aseprite sourefile for shipping. Comes with an example.

@@ -4,15 +4,9 @@ use bevy::{
     image::ImageSamplerDescriptor,
     prelude::*,
     render::render_resource::AsBindGroup,
-    sprite::{Material2d, Material2dPlugin},
     time::common_conditions::on_timer,
 };
 use bevy_aseprite_ultra::prelude::*;
-
-/*
- * Shader Example
- * render any animation to any custom Material.
- */
 
 fn main() {
     App::new()
@@ -20,10 +14,11 @@ fn main() {
             default_sampler: ImageSamplerDescriptor::nearest(),
         }))
         .add_plugins(AsepriteUltraPlugin)
-        .add_plugins(Material2dPlugin::<MyMaterial>::default())
+        .add_plugins(MaterialPlugin::<MyMaterial>::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, render_animation::<MeshMaterial2d<MyMaterial>>)
-        .add_systems(Update, render_slice::<MeshMaterial2d<MyMaterial>>)
+        .add_systems(Update, render_animation::<MeshMaterial3d<MyMaterial>>)
+        .add_systems(Update, rotate_cube)
+        .add_systems(Update, render_slice::<MeshMaterial3d<MyMaterial>>)
         .add_systems(
             Update,
             change_slice.run_if(on_timer(Duration::from_secs(2))),
@@ -44,12 +39,12 @@ pub struct MyMaterial {
     time: f32,
 }
 
-impl Material2d for MyMaterial {
+impl Material for MyMaterial {
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
-        "my_shader.wgsl".into()
+        "my_shader3d.wgsl".into()
     }
-    fn alpha_mode(&self) -> bevy::sprite::AlphaMode2d {
-        bevy::sprite::AlphaMode2d::Blend
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Opaque
     }
 }
 
@@ -87,40 +82,50 @@ impl RenderSlice for MyMaterial {
     }
 }
 
+#[derive(Component)]
+struct Cube;
+
 fn setup(
     mut cmd: Commands,
     server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<MyMaterial>>,
 ) {
-    cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
+    cmd.spawn((
+        Camera3d::default(),
+        Transform::default()
+            .with_translation(vec3(0.0, 3.0, 5.0))
+            .looking_at(vec3(0.0, 0.0, 0.0), Dir3::Y),
+    ));
     cmd.spawn((
         AseAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-down"),
         },
-        Mesh2d(meshes.add(Mesh::from(Rectangle::from_size(Vec2::splat(100.0))))),
-        MeshMaterial2d(materials.add(MyMaterial::default())),
         Transform {
-            translation: vec3(-50.0, 0.0, 0.0),
+            translation: vec3(-1.0, 0.0, 0.0),
             ..default()
         },
+        Mesh3d(meshes.add(Mesh::from(Cuboid::default()))),
+        MeshMaterial3d(materials.add(MyMaterial::default())),
+        Cube,
     ));
     cmd.spawn((
         AseSlice {
             name: "ghost_red".into(),
             aseprite: server.load("ghost_slices.aseprite"),
         },
-        Mesh2d(meshes.add(Mesh::from(Rectangle::from_size(Vec2::splat(100.0))))),
-        MeshMaterial2d(materials.add(MyMaterial::default())),
+        Mesh3d(meshes.add(Mesh::from(Cuboid::default()))),
+        MeshMaterial3d(materials.add(MyMaterial::default())),
         Transform {
-            translation: vec3(50.0, 0.0, 0.0),
+            translation: vec3(1.0, 0.0, 0.0),
             ..default()
         },
         SliceCycle {
             current: 0,
             slices: vec!["ghost_red".into(), "ghost_blue".into()],
         },
+        Cube,
     ));
 }
 
@@ -137,4 +142,10 @@ fn change_slice(mut slices: Query<(&mut AseSlice, &mut SliceCycle)>) {
         slice.name = cycle.slices[index].clone();
         info!("slice changed to {}", slice.name);
     });
+}
+
+fn rotate_cube(mut q: Query<&mut Transform, With<Cube>>, time: Res<Time>) {
+    for mut transform in &mut q {
+        transform.rotate(Quat::from_rotation_y(time.delta_secs()));
+    }
 }

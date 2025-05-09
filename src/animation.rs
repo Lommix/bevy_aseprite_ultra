@@ -1,6 +1,6 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{ecs::component::Mutable, prelude::*};
+use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d};
 use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
@@ -8,14 +8,14 @@ impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
         app.add_event::<NextFrameEvent>();
+        app.add_systems(Update, update_aseprite_animation);
 
-        app.add_plugins((
-            MaterialAnimationPlugin::<AseUiAnimation>::default(),
-            MaterialAnimationPlugin::<AseSpriteAnimation>::default(),
-        ));
+        app.add_systems(Update, render_animation::<ImageNode>);
+        app.add_systems(Update, render_animation::<Sprite>);
 
-        app.register_type::<AseSpriteAnimation>();
-        app.register_type::<AseUiAnimation>();
+        app.add_observer(next_frame);
+
+        app.register_type::<AseAnimation>();
         app.register_type::<Animation>();
         app.register_type::<AnimationState>();
         app.register_type::<PlayDirection>();
@@ -23,39 +23,112 @@ impl Plugin for AsepriteAnimationPlugin {
     }
 }
 
-#[derive(Default)]
-pub struct MaterialAnimationPlugin<A: AseAnimation> {
-    _m: std::marker::PhantomData<A>,
+/// Anything component that implements this trait is a render target for [`AseAnimation`]
+///
+/// # Examples
+/// ```
+/// impl RenderAnimation for MyMaterial {
+///     type Extra<'e> = (Res<'e, Time>, Res<'e, Assets<TextureAtlasLayout>>);
+///     fn render_animation(
+///         &mut self,
+///        aseprite: &Aseprite,
+///        state: &AnimationState,
+///        extra: &mut Self::Extra<'_>,
+///     ) {
+///         let Some(atlas_layout) = extra.1.get(&aseprite.atlas_layout) else {
+///             return;
+///         };
+///         self.image = aseprite.atlas_image.clone();
+///         let index = aseprite.get_atlas_index(usize::from(state.current_frame));
+///         self.texture_min = atlas_layout.textures[index].min;
+///         self.texture_max = atlas_layout.textures[index].max;
+///         self.time = extra.0.elapsed_secs();
+///     }
+/// }
+/// ```
+pub trait RenderAnimation {
+    /// An extra system parameter used in rendering. Use a tuple if many are required.
+    type Extra<'e>;
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    );
 }
 
-impl<A> Plugin for MaterialAnimationPlugin<A>
-where
-    A: AseAnimation + Component<Mutability = Mutable>,
-{
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_aseprite_sprite_animation::<A>);
-        app.add_observer(next_frame::<A>);
+impl RenderAnimation for ImageNode {
+    type Extra<'e> = ();
+    fn render_animation(&mut self, aseprite: &Aseprite, state: &AnimationState, _extra: &mut ()) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
+        });
     }
 }
 
-/// Create a Sprite using an Aseprite Animation.
-/// It's a `Sprite` with some extra steps.
+impl RenderAnimation for Sprite {
+    type Extra<'e> = ();
+    fn render_animation(&mut self, aseprite: &Aseprite, state: &AnimationState, _extra: &mut ()) {
+        self.image = aseprite.atlas_image.clone();
+        self.texture_atlas = Some(TextureAtlas {
+            layout: aseprite.atlas_layout.clone(),
+            index: aseprite.get_atlas_index(usize::from(state.current_frame)),
+        });
+    }
+}
+
+impl<M: Material2d + RenderAnimation> RenderAnimation for MeshMaterial2d<M> {
+    type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        let Some(material) = extra.0.get_mut(&*self) else {
+            return;
+        };
+        material.render_animation(aseprite, state, &mut extra.1);
+    }
+}
+
+impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
+    type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        let Some(material) = extra.0.get_mut(&*self) else {
+            return;
+        };
+        material.render_animation(aseprite, state, &mut extra.1);
+    }
+}
+
+/// Create a Component using an Aseprite Animation.
 #[derive(Component, Default, Reflect, Clone, Debug)]
-#[require(Sprite, AnimationState)]
+#[require(AnimationState)]
 #[reflect]
-pub struct AseSpriteAnimation {
+pub struct AseAnimation {
     pub animation: Animation,
     pub aseprite: Handle<Aseprite>,
 }
 
-/// Create a UI Node using a Aseprite Animation.
-/// It's an `UiImage` with some extra steps.
-#[derive(Component, Reflect, Default, Clone, Debug)]
-#[require(ImageNode, AnimationState)]
-#[reflect]
-pub struct AseUiAnimation {
-    pub animation: Animation,
-    pub aseprite: Handle<Aseprite>,
+pub fn render_animation<T: RenderAnimation + Component<Mutability = Mutable>>(
+    mut animations: Query<(&AseAnimation, &mut T, &AnimationState)>,
+    aseprites: Res<Assets<Aseprite>>,
+    mut extra: <T as RenderAnimation>::Extra<'_>,
+) {
+    for (animation, mut target, state) in &mut animations {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
+            continue;
+        };
+        target.render_animation(aseprite, state, &mut extra);
+    }
 }
 
 /// Add this tag, if you do not want to plugin to handle
@@ -63,80 +136,6 @@ pub struct AseUiAnimation {
 /// `AnimationState` component
 #[derive(Component)]
 pub struct ManualTick;
-
-pub trait AseAnimation {
-    type Target: Component<Mutability = Mutable>;
-
-    fn aseprite(&self) -> &Handle<Aseprite>;
-    fn animation(&self) -> &Animation;
-    fn animation_mut(&mut self) -> &mut Animation;
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-        layout: &TextureAtlasLayout,
-    );
-}
-
-impl AseAnimation for AseUiAnimation {
-    type Target = ImageNode;
-
-    fn aseprite(&self) -> &Handle<Aseprite> {
-        &self.aseprite
-    }
-
-    fn animation(&self) -> &Animation {
-        &self.animation
-    }
-
-    fn animation_mut(&mut self) -> &mut Animation {
-        &mut self.animation
-    }
-
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-        _: &TextureAtlasLayout,
-    ) {
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(frame)),
-        });
-    }
-}
-
-impl AseAnimation for AseSpriteAnimation {
-    type Target = Sprite;
-
-    fn aseprite(&self) -> &Handle<Aseprite> {
-        &self.aseprite
-    }
-    fn animation(&self) -> &Animation {
-        &self.animation
-    }
-
-    fn animation_mut(&mut self) -> &mut Animation {
-        &mut self.animation
-    }
-
-    fn render(
-        &self,
-        target: &mut Self::Target,
-        frame: u16,
-        aseprite: &Aseprite,
-        _: &TextureAtlasLayout,
-    ) {
-        target.image = aseprite.atlas_image.clone();
-        target.texture_atlas = Some(TextureAtlas {
-            layout: aseprite.atlas_layout.clone(),
-            index: aseprite.get_atlas_index(usize::from(frame)),
-        });
-    }
-}
 
 #[derive(Debug, Clone, Reflect)]
 #[reflect]
@@ -341,33 +340,23 @@ impl From<u16> for AnimationRepeat {
     }
 }
 
-pub fn update_aseprite_sprite_animation<T>(
+pub fn update_aseprite_animation(
     mut cmd: Commands,
     mut animations: Query<(
         Entity,
-        &mut T,
+        &mut AseAnimation,
         &mut AnimationState,
-        &mut T::Target,
         Has<ManualTick>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
-    layouts: Res<Assets<TextureAtlasLayout>>,
     time: Res<Time>,
-    // mut res: ResMut<T::TargetRes>,
-) where
-    T: AseAnimation + Component<Mutability = Mutable>,
-    T::Target: Component<Mutability = Mutable>,
-{
-    for (entity, mut animation, mut state, mut target, is_manual) in animations.iter_mut() {
-        let Some(aseprite) = aseprites.get(animation.aseprite()) else {
+) {
+    for (entity, mut animation, mut state, is_manual) in animations.iter_mut() {
+        let Some(aseprite) = aseprites.get(&animation.aseprite) else {
             continue;
         };
 
-        let Some(layout) = layouts.get(&aseprite.atlas_layout) else {
-            continue;
-        };
-
-        let range = match animation.animation().tag.as_ref() {
+        let range = match animation.animation.tag.as_ref() {
             Some(tag) => aseprite
                 .tags
                 .get(tag)
@@ -380,18 +369,16 @@ pub fn update_aseprite_sprite_animation<T>(
         // animations to be outside of the animation range
         if !range.contains(&state.current_frame) {
             //Default code
-            if !animation.animation().hold_relative_frame {
+            if !animation.animation.hold_relative_frame {
                 state.current_frame = *range.start();
                 state.relative_frame = 0;
-                animation.animation_mut().relative_group = 0;
-                animation.animation_mut().new_relative_group = 0;
+                animation.animation.relative_group = 0;
+                animation.animation.new_relative_group = 0;
 
             // Using relative frame switching
             } else {
-                if animation.animation().new_relative_group != animation.animation().relative_group
-                {
-                    animation.animation_mut().relative_group =
-                        animation.animation().new_relative_group;
+                if animation.animation.new_relative_group != animation.animation.relative_group {
+                    animation.animation.relative_group = animation.animation.new_relative_group;
                     state.current_frame = *range.start();
                     state.relative_frame = 0;
                     state.elapsed = std::time::Duration::ZERO;
@@ -403,20 +390,18 @@ pub fn update_aseprite_sprite_animation<T>(
             }
         }
 
-        animation.render(&mut target, state.current_frame, aseprite, &layout);
-
         if is_manual {
             return;
         }
 
         state.elapsed +=
-            std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation().speed);
+            std::time::Duration::from_secs_f32(time.delta_secs() * animation.animation.speed);
 
         let Some(frame_duration) = aseprite
             .frame_durations
             .get(usize::from(state.current_frame))
         else {
-            continue;
+            return;
         };
 
         if state.elapsed > *frame_duration {
@@ -430,23 +415,21 @@ pub fn update_aseprite_sprite_animation<T>(
 #[derive(Event)]
 pub struct NextFrameEvent;
 
-pub fn next_frame<T>(
+fn next_frame(
     trigger: Trigger<NextFrameEvent>,
     mut events: EventWriter<AnimationEvents>,
-    mut animations: Query<(&mut AnimationState, &mut T)>,
+    mut animations: Query<(&mut AnimationState, &mut AseAnimation)>,
     aseprites: Res<Assets<Aseprite>>,
-) where
-    T: AseAnimation + Component<Mutability = Mutable>,
-{
+) {
     let Ok((mut state, mut ase)) = animations.get_mut(trigger.target()) else {
         return;
     };
 
-    let Some(aseprite) = aseprites.get(ase.aseprite()) else {
+    let Some(aseprite) = aseprites.get(&ase.aseprite) else {
         return;
     };
 
-    let animation = ase.animation_mut();
+    let animation = &mut ase.animation;
 
     let (range, direction) = match animation
         .tag
