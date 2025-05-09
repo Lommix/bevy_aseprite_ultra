@@ -1,4 +1,4 @@
-## !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHANGE THIS HEADING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+## 0.6
 
 - removed `AseAnimation` trait.
 - new `AseAnimation` component instead of `AseSpriteAnimation` and `AseUiAnimation` which renders its animation onto any component which implements `RenderAnimation`.
