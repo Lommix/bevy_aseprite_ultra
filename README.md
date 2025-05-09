@@ -57,7 +57,7 @@ use bevy_aseprite_ultra::prelude::*;
 // Load an animation from an aseprite file
 fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn((
-        AseSpriteAnimation {
+        AseAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right")
                 .with_repeat(AnimationRepeat::Count(1))
@@ -84,10 +84,11 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
 // create for any static atlas with marked regions aka slices.
 fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
     cmd.spawn((
-        AseSpriteSlice {
+        AseSlice {
             name: "ghost_red".into(),
             aseprite: server.load("ball.aseprite"),
         },
+        Sprite::default(),
     ));
 }
 
@@ -112,7 +113,7 @@ There is also an Ui Bundle for Bevy Ui Nodes!
 // animations in bevy ui
 cmd.spawn((
         Button,
-        AseUiAnimation {
+        AseAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right"),
         },
@@ -126,7 +127,7 @@ cmd.spawn((
             border: UiRect::all(Val::Px(5.)),
             ..default()
         },
-        AseUiSlice {
+        AseSlice {
             name: "ghost_red".into(),
             aseprite: server.load("ghost_slices.aseprite"),
         },
