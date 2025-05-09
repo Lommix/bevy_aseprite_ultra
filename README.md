@@ -106,12 +106,13 @@ fn despawn_on_finish(mut events: EventReader<AnimationEvents>, mut cmd : Command
 
 ## Bevy Ui
 
-There is also an Ui Bundle for Bevy Ui Nodes!
+Nothing to changes. Just add the animation/slice together with an `ImageNode`.
 
 ```rust
 // animations in bevy ui
 cmd.spawn((
         Button,
+        ImageNode::default(), // RenderTarget
         AseAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right"),
