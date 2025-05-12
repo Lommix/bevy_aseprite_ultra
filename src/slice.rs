@@ -83,6 +83,7 @@ impl<M: Material2d + RenderSlice> RenderSlice for MeshMaterial2d<M> {
     }
 }
 
+#[cfg(feature = "3d")]
 impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
     type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderSlice>::Extra<'e>);
     fn render_slice(

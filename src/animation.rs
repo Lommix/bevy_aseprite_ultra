@@ -94,6 +94,7 @@ impl<M: Material2d + RenderAnimation> RenderAnimation for MeshMaterial2d<M> {
     }
 }
 
+#[cfg(feature = "3d")]
 impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
     type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
     fn render_animation(
