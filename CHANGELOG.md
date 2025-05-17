@@ -1,3 +1,7 @@
+## WIP
+
+- Optimized slice rendering.
+
 ## 0.6.1
 
 - feature gated 3d rendering to a "3d" feature flag.
