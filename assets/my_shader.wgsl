@@ -10,12 +10,6 @@
 fn fragment(
     v: VertexOutput,
 ) -> @location(0) vec4<f32> {
-    var normal = normalize(v.normal);
-
-    if (!front_facing) {
-        normal = -normal;
-    }
-
     let size = textureDimensions(t);
     let uv_min = vec2f(texture_min) / vec2f(size);
     let uv_max = vec2f(texture_max) / vec2f(size);

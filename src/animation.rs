@@ -8,7 +8,7 @@ impl Plugin for AsepriteAnimationPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<AnimationEvents>();
         app.add_event::<NextFrameEvent>();
-        app.add_systems(Update, update_aseprite_animation);
+        app.add_systems(PreUpdate, update_aseprite_animation);
 
         app.add_systems(Update, render_animation::<ImageNode>);
         app.add_systems(Update, render_animation::<Sprite>);
