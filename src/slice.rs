@@ -108,17 +108,22 @@ pub struct AseSlice {
 }
 
 pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
-    mut nodes: Query<(&mut T, &AseSlice)>,
+    mut slices: Query<(&mut T, Ref<AseSlice>)>,
     aseprites: Res<Assets<Aseprite>>,
     mut extra: <T as RenderSlice>::Extra<'_>,
 ) {
-    for (mut target, slice) in &mut nodes {
+    let asset_change = aseprites.is_changed();
+
+    for (mut target, slice) in &mut slices {
+        if !asset_change && !slice.is_changed() {
+            continue;
+        }
         let Some(aseprite) = aseprites.get(&slice.aseprite) else {
-            return;
+            continue;
         };
         let Some(slice_meta) = aseprite.slices.get(&slice.name) else {
-            warn!("slice does not exists {}", slice.name);
-            return;
+            warn!("slice does not exist {}", slice.name);
+            continue;
         };
         target.render_slice(aseprite, slice_meta, &mut extra);
     }
