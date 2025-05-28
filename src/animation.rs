@@ -362,7 +362,9 @@ pub fn update_aseprite_animation(
                 .tags
                 .get(tag)
                 .map(|meta| meta.range.clone())
-                .unwrap(),
+                .expect(&format!(
+                    "Animation tag \"{tag}\" not found in aseprite file",
+                )),
             None => 0..=(aseprite.frame_durations.len() as u16 - 1),
         };
 
