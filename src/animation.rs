@@ -94,6 +94,22 @@ impl<M: Material2d + RenderAnimation> RenderAnimation for MeshMaterial2d<M> {
     }
 }
 
+
+impl<M: UiMaterial + RenderAnimation> RenderAnimation for MaterialNode<M> {
+    type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        let Some(material) = extra.0.get_mut(&*self) else {
+            return;
+        };
+        material.render_animation(aseprite, state, &mut extra.1);
+    }
+}
+
 #[cfg(feature = "3d")]
 impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
     type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
