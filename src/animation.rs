@@ -229,6 +229,7 @@ impl Animation {
 
     /// instanly starts playing a new animation, clearing any item left in the queue.
     pub fn play(&mut self, tag: impl Into<String>, repeat: AnimationRepeat) {
+        self.playing = true;
         self.tag = Some(tag.into());
         self.repeat = repeat;
         self.queue.clear();
@@ -241,6 +242,7 @@ impl Animation {
         repeat: AnimationRepeat,
         new_relative_group: u16,
     ) {
+        self.playing = true;
         self.tag = Some(tag.into());
         self.new_relative_group = new_relative_group;
         self.repeat = repeat;
@@ -249,9 +251,28 @@ impl Animation {
 
     /// instanly starts playing a new animation, clearing any item left in the queue.
     pub fn play_loop(&mut self, tag: impl Into<String>) {
+        self.playing = true;
         self.tag = Some(tag.into());
         self.repeat = AnimationRepeat::Loop;
         self.queue.clear();
+    }
+
+    /// instantly stops the currently playing animation, clearing any item left in the queue.
+    pub fn stop(&mut self) {
+        self.playing = false;
+        self.tag = None;
+        self.repeat = AnimationRepeat::Loop;
+        self.queue.clear();
+    }
+
+    /// pauses the currently playing animation
+    pub fn pause(&mut self) {
+        self.playing = false;
+    }
+
+    /// starts the currently set animation
+    pub fn start(&mut self) {
+        self.playing = true;
     }
 
     /// chains an animation after the current one is done
@@ -410,7 +431,11 @@ pub fn update_aseprite_animation(
         }
 
         if is_manual {
-            return;
+            continue;
+        }
+
+        if !animation.animation.playing {
+            continue;
         }
 
         state.elapsed +=
