@@ -1,9 +1,7 @@
 use std::time::Duration;
 
 use bevy::{
-    image::ImageSamplerDescriptor,
-    prelude::*,
-    render::render_resource::AsBindGroup,
+    image::ImageSamplerDescriptor, prelude::*, render::render_resource::AsBindGroup,
     time::common_conditions::on_timer,
 };
 use bevy_aseprite_ultra::prelude::*;
