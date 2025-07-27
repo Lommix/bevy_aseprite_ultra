@@ -1,6 +1,6 @@
 use crate::loader::Aseprite;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
-use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d};
+use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d, ui::UiSystem};
 use std::{collections::VecDeque, time::Duration};
 
 pub struct AsepriteAnimationPlugin;
@@ -10,8 +10,11 @@ impl Plugin for AsepriteAnimationPlugin {
         app.add_event::<NextFrameEvent>();
         app.add_systems(PreUpdate, update_aseprite_animation);
 
-        app.add_systems(Update, render_animation::<ImageNode>);
-        app.add_systems(Update, render_animation::<Sprite>);
+        app.add_systems(
+            PostUpdate,
+            render_animation::<ImageNode>.before(UiSystem::Prepare),
+        );
+        app.add_systems(PostUpdate, render_animation::<Sprite>);
 
         app.add_observer(next_frame);
 
@@ -93,7 +96,6 @@ impl<M: Material2d + RenderAnimation> RenderAnimation for MeshMaterial2d<M> {
         material.render_animation(aseprite, state, &mut extra.1);
     }
 }
-
 
 impl<M: UiMaterial + RenderAnimation> RenderAnimation for MaterialNode<M> {
     type Extra<'e> = (ResMut<'e, Assets<M>>, <M as RenderAnimation>::Extra<'e>);
