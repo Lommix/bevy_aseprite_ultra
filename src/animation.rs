@@ -1,4 +1,5 @@
 use crate::loader::Aseprite;
+use anyhow::Context;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::{ecs::component::Mutable, prelude::*, sprite::Material2d, ui::UiSystem};
 use std::{collections::VecDeque, time::Duration};
@@ -390,7 +391,7 @@ pub fn update_aseprite_animation(
     )>,
     aseprites: Res<Assets<Aseprite>>,
     time: Res<Time>,
-) {
+) -> Result<(), BevyError> {
     for (entity, mut animation, mut state, is_manual) in animations.iter_mut() {
         let Some(aseprite) = aseprites.get(&animation.aseprite) else {
             continue;
@@ -401,9 +402,9 @@ pub fn update_aseprite_animation(
                 .tags
                 .get(tag)
                 .map(|meta| meta.range.clone())
-                .expect(&format!(
+                .context(format!(
                     "Animation tag \"{tag}\" not found in aseprite file",
-                )),
+                ))?,
             None => 0..=(aseprite.frame_durations.len() as u16 - 1),
         };
 
@@ -447,7 +448,7 @@ pub fn update_aseprite_animation(
             .frame_durations
             .get(usize::from(state.current_frame))
         else {
-            return;
+            return Ok(());
         };
 
         if state.elapsed > *frame_duration {
@@ -456,6 +457,7 @@ pub fn update_aseprite_animation(
                 Duration::from_secs_f32(state.elapsed.as_secs_f32() % frame_duration.as_secs_f32());
         }
     }
+    Ok(())
 }
 
 #[derive(Event)]
