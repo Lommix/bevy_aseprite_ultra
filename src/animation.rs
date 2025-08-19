@@ -177,7 +177,7 @@ impl Default for Animation {
         Self {
             tag: None,
             speed: 1.0,
-            playing: false,
+            playing: true,
             repeat: AnimationRepeat::Loop,
             direction: None,
             queue: VecDeque::new(),
