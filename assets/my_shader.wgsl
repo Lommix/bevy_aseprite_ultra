@@ -1,10 +1,10 @@
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
-@group(2) @binding(1) var t: texture_2d<f32>;
-@group(2) @binding(2) var s: sampler;
-@group(2) @binding(3) var<uniform> texture_min: vec2u;
-@group(2) @binding(4) var<uniform> texture_max: vec2u;
-@group(2) @binding(5) var<uniform> time: f32;
+@group(#{MATERIAL_BIND_GROUP}) @binding(0) var t: texture_2d<f32>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(1) var s: sampler;
+@group(#{MATERIAL_BIND_GROUP}) @binding(2) var<uniform> texture_min: vec2u;
+@group(#{MATERIAL_BIND_GROUP}) @binding(3) var<uniform> texture_max: vec2u;
+@group(#{MATERIAL_BIND_GROUP}) @binding(4) var<uniform> time: f32;
 
 @fragment
 fn fragment(

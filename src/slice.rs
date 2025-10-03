@@ -1,9 +1,6 @@
 use crate::loader::{Aseprite, SliceMeta};
 use bevy::{
-    ecs::component::Mutable,
-    prelude::*,
-    sprite::{Anchor, Material2d},
-    ui::UiSystem,
+    ecs::component::Mutable, prelude::*, sprite::Anchor, sprite_render::Material2d, ui::UiSystems,
 };
 
 pub struct AsepriteSlicePlugin;
@@ -12,7 +9,7 @@ impl Plugin for AsepriteSlicePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             PostUpdate,
-            render_slice::<ImageNode>.before(UiSystem::Prepare),
+            render_slice::<ImageNode>.before(UiSystems::Prepare),
         );
         app.add_systems(PostUpdate, render_slice::<Sprite>);
         app.register_type::<AseSlice>();
@@ -63,7 +60,6 @@ impl RenderSlice for ImageNode {
 impl RenderSlice for Sprite {
     type Extra<'e> = ();
     fn render_slice(&mut self, aseprite: &Aseprite, slice_meta: &SliceMeta, _extra: &mut ()) {
-        self.anchor = Anchor::from(slice_meta);
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
@@ -112,13 +108,13 @@ pub struct AseSlice {
 }
 
 pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
-    mut slices: Query<(&mut T, Ref<AseSlice>)>,
+    mut slices: Query<(&mut T, Ref<AseSlice>, Option<&mut Anchor>)>,
     aseprites: Res<Assets<Aseprite>>,
     mut extra: <T as RenderSlice>::Extra<'_>,
 ) {
     let asset_change = aseprites.is_changed();
 
-    for (mut target, slice) in &mut slices {
+    for (mut target, slice, maybe_anchor) in &mut slices {
         if !asset_change && !slice.is_changed() {
             continue;
         }
@@ -129,6 +125,11 @@ pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
             warn!("slice does not exist {}", slice.name);
             continue;
         };
+
+        if let Some(mut anchor) = maybe_anchor {
+            *anchor = Anchor::from(slice_meta);
+        }
+
         target.render_slice(aseprite, slice_meta, &mut extra);
     }
 }

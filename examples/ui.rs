@@ -38,7 +38,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                 border: UiRect::all(Val::Px(5.)),
                 ..default()
             },
-            BorderColor(css::BLUE.into()),
+            BorderColor::all(css::BLUE),
             BorderRadius::all(Val::Px(15.)),
         ))
         .id();

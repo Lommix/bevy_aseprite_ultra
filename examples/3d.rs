@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     image::ImageSamplerDescriptor, prelude::*, render::render_resource::AsBindGroup,
-    time::common_conditions::on_timer,
+    shader::ShaderRef, time::common_conditions::on_timer,
 };
 use bevy_aseprite_ultra::prelude::*;
 
@@ -26,19 +26,19 @@ fn main() {
 
 #[derive(AsBindGroup, Debug, Clone, Asset, TypePath, Default)]
 pub struct MyMaterial {
-    #[texture(1)]
-    #[sampler(2)]
+    #[texture(0)]
+    #[sampler(1)]
     image: Handle<Image>,
-    #[uniform(3)]
+    #[uniform(2)]
     texture_min: UVec2,
-    #[uniform(4)]
+    #[uniform(3)]
     texture_max: UVec2,
-    #[uniform(5)]
+    #[uniform(4)]
     time: f32,
 }
 
 impl Material for MyMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    fn fragment_shader() -> ShaderRef {
         "my_shader3d.wgsl".into()
     }
     fn alpha_mode(&self) -> AlphaMode {

@@ -1,14 +1,11 @@
 use crate::error::AsepriteError;
 use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
 use bevy::{
-    asset::{io::Reader, AssetLoader},
+    asset::{io::Reader, AssetLoader, RenderAssetUsages},
     image::ImageSampler,
     platform::collections::HashMap,
     prelude::*,
-    render::{
-        render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
-    },
+    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
     sprite::Anchor,
 };
 use serde::{Deserialize, Serialize};
@@ -82,9 +79,9 @@ impl From<&SliceMeta> for Anchor {
             Some(pivot) => {
                 let size = value.rect.size();
                 let uv = (pivot.min(size).max(Vec2::ZERO) / size) - Vec2::new(0.5, 0.5);
-                Anchor::Custom(uv * Vec2::new(1.0, -1.0))
+                Anchor(uv * Vec2::new(1.0, -1.0))
             }
-            None => Anchor::Center,
+            None => Anchor::CENTER,
         }
     }
 }
