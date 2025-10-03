@@ -117,6 +117,7 @@ impl AssetSaver for AsepriteSaver {
             is_srgb: atlas_texture.texture_descriptor.format.is_srgb(),
             sampler: atlas_texture.sampler.clone(),
             asset_usage: atlas_texture.asset_usage,
+            texture_format: None,
         })
     }
 }
