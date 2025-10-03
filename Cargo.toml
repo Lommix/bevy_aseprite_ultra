@@ -12,9 +12,11 @@ readme = "README.md"
 [dependencies]
 bevy = { version = "0.17", default-features = false, features = [
   "bevy_sprite",
+  "bevy_sprite_render",
+  "bevy_ui",
+  "bevy_ui_render",
   "bevy_render",
   "bevy_asset",
-  "bevy_ui",
   "bevy_log",
   "png",
 ] }
