@@ -312,7 +312,7 @@ impl From<&str> for Animation {
     }
 }
 
-#[derive(Component, Debug, Default, Reflect)]
+#[derive(Component, Debug, Default, Reflect, Clone)]
 #[reflect]
 pub struct AnimationState {
     /// carefull, changing the frame out of bounds
@@ -333,7 +333,7 @@ impl AnimationState {
     }
 }
 
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Reflect, Clone)]
 #[reflect]
 pub enum PlayDirection {
     #[default]
@@ -341,7 +341,7 @@ pub enum PlayDirection {
     Backward,
 }
 
-#[derive(Message, Debug, Reflect)]
+#[derive(Message, Debug, Reflect, Clone)]
 #[reflect]
 pub enum AnimationEvents {
     Finished(Entity),
@@ -466,7 +466,7 @@ pub fn update_aseprite_animation(
     Ok(())
 }
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub struct NextFrameEvent(pub Entity);
 
 fn next_frame(

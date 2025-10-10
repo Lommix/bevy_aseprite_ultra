@@ -22,7 +22,7 @@ impl Plugin for AsepriteLoaderPlugin {
 //@todo: if this can be serialized, we basicly have a intermediate binary
 //represantion and can make use of the asset prepocessor. No longer need
 //to ship or bundle aseprite binaries into your release.
-#[derive(Asset, Default, TypePath, Debug)]
+#[derive(Asset, Default, TypePath, Debug, Clone)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct Aseprite {
     pub slices: HashMap<String, SliceMeta>,
@@ -44,7 +44,7 @@ impl Aseprite {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct TagMeta {
     #[cfg_attr(feature = "asset_processing", serde(with = "AnimationDirectionDef"))]
@@ -54,7 +54,7 @@ pub struct TagMeta {
 }
 
 #[cfg(feature = "asset_processing")]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(remote = "AnimationDirection")]
 enum AnimationDirectionDef {
     Forward,
@@ -64,7 +64,7 @@ enum AnimationDirectionDef {
     Unknown(u8),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct SliceMeta {
     pub rect: Rect,
@@ -89,7 +89,7 @@ impl From<&SliceMeta> for Anchor {
 #[derive(Default)]
 pub struct AsepriteLoader;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AsepriteLoaderSettings {
     pub sampler: ImageSampler,
 }
