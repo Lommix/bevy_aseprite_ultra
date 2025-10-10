@@ -54,7 +54,7 @@ pub struct TagMeta {
 }
 
 #[cfg(feature = "asset_processing")]
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize)]
 #[serde(remote = "AnimationDirection")]
 enum AnimationDirectionDef {
     Forward,
