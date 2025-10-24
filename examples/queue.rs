@@ -28,7 +28,7 @@ fn setup<'a>(mut cmd: Commands, server: Res<AssetServer>) {
     ));
 }
 
-fn events(mut events: EventReader<AnimationEvents>, mut cmd: Commands) {
+fn events(mut events: MessageReader<AnimationEvents>, mut cmd: Commands) {
     for event in events.read() {
         match event {
             AnimationEvents::Finished(entity) => cmd.entity(*entity).despawn(),
