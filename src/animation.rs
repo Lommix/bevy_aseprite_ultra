@@ -62,10 +62,11 @@ pub trait RenderAnimation {
     type Extra<'e>;
     fn render_animation(
         &mut self,
-        aseprite: &Aseprite,
-        state: &AnimationState,
-        extra: &mut Self::Extra<'_>,
-    );
+        _aseprite: &Aseprite,
+        _state: &AnimationState,
+        _extra: &mut Self::Extra<'_>,
+    ) {
+    }
 }
 
 impl RenderAnimation for ImageNode {
@@ -136,16 +137,8 @@ impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
     }
 }
 
-// so you can render to `ExtendedMaterial<StandardMaterial, E>` without newtype-ing StandardMaterial
 impl RenderAnimation for StandardMaterial {
     type Extra<'e> = ();
-    fn render_animation(
-        &mut self,
-        _aseprite: &Aseprite,
-        _state: &AnimationState,
-        _extra: &mut Self::Extra<'_>,
-    ) {
-    }
 }
 
 impl<B: Material + RenderAnimation, E: MaterialExtension + RenderAnimation> RenderAnimation
