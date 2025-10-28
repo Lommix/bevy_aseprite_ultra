@@ -22,7 +22,7 @@ impl Plugin for AsepriteLoaderPlugin {
 //@todo: if this can be serialized, we basicly have a intermediate binary
 //represantion and can make use of the asset prepocessor. No longer need
 //to ship or bundle aseprite binaries into your release.
-#[derive(Asset, Default, TypePath, Debug, Clone)]
+#[derive(Asset, Default, TypePath, Debug)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct Aseprite {
     pub slices: HashMap<String, SliceMeta>,
