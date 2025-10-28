@@ -137,10 +137,12 @@ impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
     }
 }
 
+#[cfg(feature = "3d")]
 impl RenderAnimation for StandardMaterial {
     type Extra<'e> = ();
 }
 
+#[cfg(feature = "3d")]
 impl<B: Material + RenderAnimation, E: MaterialExtension + RenderAnimation> RenderAnimation
     for ExtendedMaterial<B, E>
 {

@@ -105,10 +105,12 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
     }
 }
 
+#[cfg(feature = "3d")]
 impl RenderSlice for StandardMaterial {
     type Extra<'e> = ();
 }
 
+#[cfg(feature = "3d")]
 impl<B: Material + RenderSlice, E: MaterialExtension + RenderSlice> RenderSlice
     for ExtendedMaterial<B, E>
 {
