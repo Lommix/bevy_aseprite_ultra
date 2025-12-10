@@ -66,11 +66,21 @@ enum AnimationDirectionDef {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
+pub struct SliceKeyMeta {
+    pub frame: usize,
+    pub rect: Rect,
+    pub pivot: Option<Vec2>,
+    pub nine_patch: Option<Vec4>,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct SliceMeta {
     pub rect: Rect,
     pub atlas_id: usize,
     pub pivot: Option<Vec2>,
     pub nine_patch: Option<Vec4>,
+    pub keys: Vec<SliceKeyMeta>,
 }
 
 impl From<&SliceMeta> for Anchor {
@@ -192,6 +202,25 @@ impl AssetLoader for AsepriteLoader {
 
             let layout_id = layout.add_texture(URect::from_corners(min.as_uvec2(), max.as_uvec2()));
 
+            let mut keys = Vec::new();
+            for key in &slice.slice_keys {
+                let k_min = Vec2::new(key.x as f32, key.y as f32);
+                let k_max = k_min + Vec2::new(key.width as f32, key.height as f32);
+
+                let k_pivot = key.pivot.map(|p| Vec2::new(p.x as f32, p.y as f32));
+
+                let k_nine_patch = key.nine_patch.map(|np| {
+                    Vec4::new(np.x as f32, np.y as f32, np.width as f32, np.height as f32)
+                });
+
+                keys.push(SliceKeyMeta {
+                    frame: key.frame_number as usize,
+                    rect: Rect::from_corners(k_min, k_max),
+                    pivot: k_pivot,
+                    nine_patch: k_nine_patch,
+                });
+            }
+
             slices.insert(
                 slice.name.into(),
                 SliceMeta {
@@ -199,6 +228,7 @@ impl AssetLoader for AsepriteLoader {
                     atlas_id: layout_id,
                     pivot,
                     nine_patch,
+                    keys,
                 },
             );
         });
