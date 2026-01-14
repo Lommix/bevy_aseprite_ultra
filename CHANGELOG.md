@@ -1,6 +1,7 @@
 ## WIP
 
-- Optimized slice rendering.
+- optimized slice rendering.
+- updated to bevy 0.18;
 
 ## 0.6.1
 

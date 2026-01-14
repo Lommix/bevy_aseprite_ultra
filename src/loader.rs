@@ -96,7 +96,7 @@ impl From<&SliceMeta> for Anchor {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, TypePath)]
 pub struct AsepriteLoader;
 
 #[derive(Serialize, Deserialize, Debug)]
