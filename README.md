@@ -8,6 +8,7 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
+|         0.18 |          0.8.0 |
 |         0.17 |          0.7.0 |
 |         0.16 |          0.6.1 |
 |         0.15 |          0.4.1 |
