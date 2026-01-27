@@ -5,6 +5,7 @@ use bevy::{
     app::{App, Plugin, PostUpdate, PreUpdate},
     ecs::component::Mutable,
     image::TextureAtlas,
+    pbr::{ExtendedMaterial, MaterialExtension},
     prelude::*,
     sprite::Sprite,
     sprite_render::Material2d,
@@ -61,10 +62,11 @@ pub trait RenderAnimation {
     type Extra<'e>;
     fn render_animation(
         &mut self,
-        aseprite: &Aseprite,
-        state: &AnimationState,
-        extra: &mut Self::Extra<'_>,
-    );
+        _aseprite: &Aseprite,
+        _state: &AnimationState,
+        _extra: &mut Self::Extra<'_>,
+    ) {
+    }
 }
 
 impl RenderAnimation for ImageNode {
@@ -132,6 +134,31 @@ impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
             return;
         };
         material.render_animation(aseprite, state, &mut extra.1);
+    }
+}
+
+#[cfg(feature = "3d")]
+impl RenderAnimation for StandardMaterial {
+    type Extra<'e> = ();
+}
+
+#[cfg(feature = "3d")]
+impl<B: Material + RenderAnimation, E: MaterialExtension + RenderAnimation> RenderAnimation
+    for ExtendedMaterial<B, E>
+{
+    type Extra<'e> = (
+        <B as RenderAnimation>::Extra<'e>,
+        <E as RenderAnimation>::Extra<'e>,
+    );
+    fn render_animation(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &AnimationState,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        self.base.render_animation(aseprite, state, &mut extra.0);
+        self.extension
+            .render_animation(aseprite, state, &mut extra.1);
     }
 }
 
