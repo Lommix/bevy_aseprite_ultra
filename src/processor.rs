@@ -55,6 +55,7 @@ struct AsepriteDeserialize {
     pub atlas_layout: TextureAtlasLayout,
 }
 
+#[derive(TypePath)]
 struct AsepriteSaver;
 
 impl AssetSaver for AsepriteSaver {
@@ -118,10 +119,12 @@ impl AssetSaver for AsepriteSaver {
             sampler: atlas_texture.sampler.clone(),
             asset_usage: atlas_texture.asset_usage,
             texture_format: None,
+            array_layout: None,
         })
     }
 }
 
+#[derive(TypePath)]
 struct ProcessedAsepriteLoader {
     supported_compressed_formats: CompressedImageFormats,
 }
