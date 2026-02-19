@@ -1,5 +1,5 @@
 use crate::error::AsepriteError;
-use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::AsepriteFile};
+use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::{AsepriteFile, LayerSelection}};
 use bevy::{
     asset::{io::Reader, AssetLoader, RenderAssetUsages},
     image::ImageSampler,
@@ -140,8 +140,8 @@ impl AssetLoader for AsepriteLoader {
         for (index, _frame) in raw.frames().iter().enumerate() {
             let (width, height) = raw.size();
             let mut buffer = vec![0; width as usize * height as usize * 4];
-
-            let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
+            
+            raw.render_frame(index, buffer.as_mut_slice(), &LayerSelection::All)?;
 
             let image = Image {
                 sampler: settings.sampler.clone(),

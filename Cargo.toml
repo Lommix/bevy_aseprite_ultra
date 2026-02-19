@@ -20,7 +20,7 @@ bevy = { version = "0.18", default-features = false, features = [
   "bevy_log",
   "png",
 ] }
-aseprite-loader = "0.3.3"
+aseprite-loader = "0.4.2"
 uuid = "1.9.1"
 thiserror = "2.0.0"
 serde = "1.0.218"
