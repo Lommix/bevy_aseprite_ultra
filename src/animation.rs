@@ -433,7 +433,7 @@ pub fn update_aseprite_animation(
                     state.elapsed = std::time::Duration::ZERO;
                 } else {
                     state.relative_frame =
-                        (state.relative_frame) % (*range.end() * range.start() - 1);
+                        (state.relative_frame) % (range.end() - range.start() + 1);
                     state.current_frame = *range.start() + state.relative_frame;
                 }
             }
