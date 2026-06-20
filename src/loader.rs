@@ -233,8 +233,8 @@ impl AssetLoader for AsepriteLoader {
             );
         });
 
-        let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
-        let atlas_image = load_context.add_labeled_asset("atlas_texture".into(), image);
+        let atlas_layout = load_context.add_labeled_asset("atlas_layout", layout);
+        let atlas_image = load_context.add_labeled_asset("atlas_texture", image);
 
         // ---------------------------- tags
         let mut tags = HashMap::new();

@@ -76,7 +76,7 @@ impl<M: Material2d + RenderSlice> RenderSlice for MeshMaterial2d<M> {
         slice_meta: &SliceMeta,
         extra: &mut Self::Extra<'_>,
     ) {
-        let Some(material) = extra.0.get_mut(&*self) else {
+        let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
         material.render_slice(aseprite, slice_meta, &mut extra.1);
@@ -92,7 +92,7 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
         slice_meta: &SliceMeta,
         extra: &mut Self::Extra<'_>,
     ) {
-        let Some(material) = extra.0.get_mut(&*self) else {
+        let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
         material.render_slice(aseprite, slice_meta, &mut extra.1);
