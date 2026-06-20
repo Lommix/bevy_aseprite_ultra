@@ -70,8 +70,9 @@ impl AssetSaver for AsepriteSaver {
     async fn save(
         &self,
         writer: &mut bevy::asset::io::Writer,
-        asset: bevy::asset::saver::SavedAsset<'_, Self::Asset>,
+        asset: bevy::asset::saver::SavedAsset<'_, '_, Self::Asset>,
         _settings: &Self::Settings,
+        _asset_path: bevy::asset::AssetPath<'_>,
     ) -> Result<<Self::OutputLoader as bevy::asset::AssetLoader>::Settings, Self::Error> {
         let texture_atlas_layout: SavedAsset<TextureAtlasLayout> = asset
             .get_labeled("atlas_layout")
@@ -103,6 +104,7 @@ impl AssetSaver for AsepriteSaver {
         let mut image_write = Cursor::new(&mut image_buf);
 
         let dynamic = atlas_texture
+            .get()
             .clone()
             .try_into_dynamic()
             .expect("Atlas image should be of a supported image type");
@@ -170,9 +172,9 @@ impl AssetLoader for ProcessedAsepriteLoader {
         )?;
 
         let atlas_layout_handle =
-            load_context.add_labeled_asset("atlas_layout".into(), de.atlas_layout);
+            load_context.add_labeled_asset("atlas_layout", de.atlas_layout);
         let atlas_texture_handle =
-            load_context.add_labeled_asset("atlas_texture".into(), atlas_texture);
+            load_context.add_labeled_asset("atlas_texture", atlas_texture);
 
         Ok(Aseprite {
             atlas_layout: atlas_layout_handle,

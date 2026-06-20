@@ -97,7 +97,7 @@ impl<M: Material2d + RenderAnimation> RenderAnimation for MeshMaterial2d<M> {
         state: &AnimationState,
         extra: &mut Self::Extra<'_>,
     ) {
-        let Some(material) = extra.0.get_mut(&*self) else {
+        let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
         material.render_animation(aseprite, state, &mut extra.1);
@@ -112,7 +112,7 @@ impl<M: UiMaterial + RenderAnimation> RenderAnimation for MaterialNode<M> {
         state: &AnimationState,
         extra: &mut Self::Extra<'_>,
     ) {
-        let Some(material) = extra.0.get_mut(&*self) else {
+        let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
         material.render_animation(aseprite, state, &mut extra.1);
@@ -128,7 +128,7 @@ impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
         state: &AnimationState,
         extra: &mut Self::Extra<'_>,
     ) {
-        let Some(material) = extra.0.get_mut(&*self) else {
+        let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
         material.render_animation(aseprite, state, &mut extra.1);

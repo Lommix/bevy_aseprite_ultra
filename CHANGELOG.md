@@ -1,3 +1,7 @@
+## 0.9.0
+
+- bevy 0.19 compatibility
+
 ## WIP
 
 - optimized slice rendering.
