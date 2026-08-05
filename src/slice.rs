@@ -119,10 +119,14 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
     }
 }
 
+/// Determines how to use nine-patch data in the `SliceMeta` object.
 #[derive(Component, Default, Debug, Clone)]
 pub enum NineSliceBehavior {
+    /// Automatically uses nine-patch data if available, otherwise disables nine-slicing.
     Auto,
+    /// Same as auto, but issue a warn log if nine-patch data is not available.
     Enabled,
+    /// Disables nine-slicing.
     #[default]
     Disabled,
 }
