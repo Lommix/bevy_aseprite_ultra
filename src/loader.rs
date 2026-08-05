@@ -1,4 +1,4 @@
-use crate::{error::AsepriteError, slice::NineSliceBehavior};
+use crate::{error::AsepriteError, slice::NinePatchBehavior};
 use aseprite_loader::{
     binary::chunks::tags::AnimationDirection,
     loader::{AsepriteFile, LayerSelection},
@@ -100,16 +100,16 @@ impl From<&SliceMeta> for Anchor {
 }
 
 impl SliceMeta {
-    pub fn texture_slicer(&self, nine_slice_behavior: NineSliceBehavior) -> Option<TextureSlicer> {
-        match nine_slice_behavior {
-            NineSliceBehavior::Auto => self.nine_patch.map(nine_patch_to_texture_slicer),
-            NineSliceBehavior::Enabled => {
+    pub fn texture_slicer(&self, nine_patch_behavior: NinePatchBehavior) -> Option<TextureSlicer> {
+        match nine_patch_behavior {
+            NinePatchBehavior::Auto => self.nine_patch.map(nine_patch_to_texture_slicer),
+            NinePatchBehavior::Enabled => {
                 if self.nine_patch.is_none() {
                     warn!("nine patch requested, but none available");
                 }
                 self.nine_patch.map(nine_patch_to_texture_slicer)
             }
-            NineSliceBehavior::Disabled => None,
+            NinePatchBehavior::Disabled => None,
         }
     }
 }

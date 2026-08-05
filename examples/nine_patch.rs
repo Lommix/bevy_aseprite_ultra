@@ -33,7 +33,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                         name: "border".into(),
                         aseprite: server.load("nine_patch.aseprite"),
                     },
-                    NineSliceBehavior::Enabled,
+                    NinePatchBehavior::Enabled,
                     ImageNode::default(),
                     Node {
                         width: px(w),

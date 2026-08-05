@@ -79,7 +79,7 @@ impl RenderSlice for MyMaterial {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
-        _nine_slice_behavior: NineSliceBehavior,
+        _nine_slice_behavior: NinePatchBehavior,
         extra: &mut Self::Extra<'_>,
     ) {
         self.image = aseprite.atlas_image.clone();

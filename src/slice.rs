@@ -42,7 +42,7 @@ pub trait RenderSlice {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
-        nine_slice_behavior: NineSliceBehavior,
+        nine_patch_behavior: NinePatchBehavior,
         extra: &mut Self::Extra<'_>,
     );
 }
@@ -53,7 +53,7 @@ impl RenderSlice for ImageNode {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
-        nine_slice_behavior: NineSliceBehavior,
+        nine_patch_behavior: NinePatchBehavior,
         _extra: &mut (),
     ) {
         self.image = aseprite.atlas_image.clone();
@@ -61,7 +61,7 @@ impl RenderSlice for ImageNode {
             layout: aseprite.atlas_layout.clone(),
             index: slice_meta.atlas_id,
         });
-        if let Some(texture_slicer) = slice_meta.texture_slicer(nine_slice_behavior) {
+        if let Some(texture_slicer) = slice_meta.texture_slicer(nine_patch_behavior) {
             self.image_mode = NodeImageMode::Sliced(texture_slicer);
         }
     }
@@ -73,7 +73,7 @@ impl RenderSlice for Sprite {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
-        nine_slice_behavior: NineSliceBehavior,
+        nine_patch_behavior: NinePatchBehavior,
         _extra: &mut (),
     ) {
         self.image = aseprite.atlas_image.clone();
@@ -81,7 +81,7 @@ impl RenderSlice for Sprite {
             layout: aseprite.atlas_layout.clone(),
             index: slice_meta.atlas_id,
         });
-        if let Some(texture_slicer) = slice_meta.texture_slicer(nine_slice_behavior) {
+        if let Some(texture_slicer) = slice_meta.texture_slicer(nine_patch_behavior) {
             self.image_mode = SpriteImageMode::Sliced(texture_slicer);
         }
     }
@@ -93,13 +93,13 @@ impl<M: Material2d + RenderSlice> RenderSlice for MeshMaterial2d<M> {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
-        nine_slice_behavior: NineSliceBehavior,
+        nine_patch_behavior: NinePatchBehavior,
         extra: &mut Self::Extra<'_>,
     ) {
         let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
-        material.render_slice(aseprite, slice_meta, nine_slice_behavior, &mut extra.1);
+        material.render_slice(aseprite, slice_meta, nine_patch_behavior, &mut extra.1);
     }
 }
 
@@ -121,7 +121,7 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
 
 /// Determines how to use nine-patch data in the `SliceMeta` object.
 #[derive(Component, Default, Debug, Clone)]
-pub enum NineSliceBehavior {
+pub enum NinePatchBehavior {
     /// Automatically uses nine-patch data if available, otherwise disables nine-slicing.
     Auto,
     /// Same as auto, but issue a warn log if nine-patch data is not available.
@@ -144,14 +144,14 @@ pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
         &mut T,
         Ref<AseSlice>,
         Option<&mut Anchor>,
-        Option<&NineSliceBehavior>,
+        Option<&NinePatchBehavior>,
     )>,
     aseprites: Res<Assets<Aseprite>>,
     mut extra: <T as RenderSlice>::Extra<'_>,
 ) {
     let asset_change = aseprites.is_changed();
 
-    for (mut target, slice, maybe_anchor, maybe_nine_slice_behavior) in &mut slices {
+    for (mut target, slice, maybe_anchor, maybe_nine_patch_behavior) in &mut slices {
         if !asset_change && !slice.is_changed() {
             continue;
         }
@@ -167,8 +167,8 @@ pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
             *anchor = Anchor::from(slice_meta);
         }
 
-        let nine_slice_behavior = maybe_nine_slice_behavior.cloned().unwrap_or_default();
+        let nine_patch_behavior = maybe_nine_patch_behavior.cloned().unwrap_or_default();
 
-        target.render_slice(aseprite, slice_meta, nine_slice_behavior, &mut extra);
+        target.render_slice(aseprite, slice_meta, nine_patch_behavior, &mut extra);
     }
 }

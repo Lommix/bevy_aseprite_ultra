@@ -17,7 +17,7 @@ pub mod prelude {
         AnimationState, AseAnimation, ManualTick, NextFrameEvent, PlayDirection, RenderAnimation,
     };
     pub use crate::loader::{Aseprite, AsepriteLoaderSettings, SliceMeta};
-    pub use crate::slice::{render_slice, AseSlice, NineSliceBehavior, RenderSlice};
+    pub use crate::slice::{render_slice, AseSlice, NinePatchBehavior, RenderSlice};
     pub use crate::AsepriteUltraPlugin;
 }
 
