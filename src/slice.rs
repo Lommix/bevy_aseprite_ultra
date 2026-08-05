@@ -42,29 +42,48 @@ pub trait RenderSlice {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
+        nine_slice_behavior: NineSliceBehavior,
         extra: &mut Self::Extra<'_>,
     );
 }
 
 impl RenderSlice for ImageNode {
     type Extra<'e> = ();
-    fn render_slice(&mut self, aseprite: &Aseprite, slice_meta: &SliceMeta, _extra: &mut ()) {
+    fn render_slice(
+        &mut self,
+        aseprite: &Aseprite,
+        slice_meta: &SliceMeta,
+        nine_slice_behavior: NineSliceBehavior,
+        _extra: &mut (),
+    ) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
             index: slice_meta.atlas_id,
         });
+        if let Some(texture_slicer) = slice_meta.texture_slicer(nine_slice_behavior) {
+            self.image_mode = NodeImageMode::Sliced(texture_slicer);
+        }
     }
 }
 
 impl RenderSlice for Sprite {
     type Extra<'e> = ();
-    fn render_slice(&mut self, aseprite: &Aseprite, slice_meta: &SliceMeta, _extra: &mut ()) {
+    fn render_slice(
+        &mut self,
+        aseprite: &Aseprite,
+        slice_meta: &SliceMeta,
+        nine_slice_behavior: NineSliceBehavior,
+        _extra: &mut (),
+    ) {
         self.image = aseprite.atlas_image.clone();
         self.texture_atlas = Some(TextureAtlas {
             layout: aseprite.atlas_layout.clone(),
             index: slice_meta.atlas_id,
         });
+        if let Some(texture_slicer) = slice_meta.texture_slicer(nine_slice_behavior) {
+            self.image_mode = SpriteImageMode::Sliced(texture_slicer);
+        }
     }
 }
 
@@ -74,12 +93,13 @@ impl<M: Material2d + RenderSlice> RenderSlice for MeshMaterial2d<M> {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
+        nine_slice_behavior: NineSliceBehavior,
         extra: &mut Self::Extra<'_>,
     ) {
         let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
-        material.render_slice(aseprite, slice_meta, &mut extra.1);
+        material.render_slice(aseprite, slice_meta, nine_slice_behavior, &mut extra.1);
     }
 }
 
@@ -99,6 +119,14 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
     }
 }
 
+#[derive(Component, Default, Debug, Clone)]
+pub enum NineSliceBehavior {
+    Auto,
+    Enabled,
+    #[default]
+    Disabled,
+}
+
 /// Displays a aseprite atlas slice
 #[derive(Component, Reflect, Default, Debug, Clone)]
 #[reflect]
@@ -108,13 +136,18 @@ pub struct AseSlice {
 }
 
 pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
-    mut slices: Query<(&mut T, Ref<AseSlice>, Option<&mut Anchor>)>,
+    mut slices: Query<(
+        &mut T,
+        Ref<AseSlice>,
+        Option<&mut Anchor>,
+        Option<&NineSliceBehavior>,
+    )>,
     aseprites: Res<Assets<Aseprite>>,
     mut extra: <T as RenderSlice>::Extra<'_>,
 ) {
     let asset_change = aseprites.is_changed();
 
-    for (mut target, slice, maybe_anchor) in &mut slices {
+    for (mut target, slice, maybe_anchor, maybe_nine_slice_behavior) in &mut slices {
         if !asset_change && !slice.is_changed() {
             continue;
         }
@@ -130,6 +163,8 @@ pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
             *anchor = Anchor::from(slice_meta);
         }
 
-        target.render_slice(aseprite, slice_meta, &mut extra);
+        let nine_slice_behavior = maybe_nine_slice_behavior.cloned().unwrap_or_default();
+
+        target.render_slice(aseprite, slice_meta, nine_slice_behavior, &mut extra);
     }
 }
