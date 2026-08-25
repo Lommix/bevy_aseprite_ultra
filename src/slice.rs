@@ -100,7 +100,7 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
 }
 
 /// Displays a aseprite atlas slice
-#[derive(Component, Reflect, Default, Debug, Clone)]
+#[derive(Component, Reflect, Default, Debug, Clone, FromTemplate)]
 #[reflect]
 pub struct AseSlice {
     pub name: String,
