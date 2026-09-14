@@ -136,7 +136,7 @@ impl<M: Material + RenderAnimation> RenderAnimation for MeshMaterial3d<M> {
 }
 
 /// Create a Component using an Aseprite Animation.
-#[derive(Component, Default, Reflect, Clone, Debug)]
+#[derive(Component, Default, Reflect, Clone, Debug, FromTemplate)]
 #[require(AnimationState)]
 #[reflect]
 pub struct AseAnimation {
