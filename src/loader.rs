@@ -44,7 +44,7 @@ impl Aseprite {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct TagMeta {
     #[cfg_attr(feature = "asset_processing", serde(with = "AnimationDirectionDef"))]
@@ -64,7 +64,7 @@ enum AnimationDirectionDef {
     Unknown(u8),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "asset_processing", derive(Serialize, Deserialize))]
 pub struct SliceKeyMeta {
     pub frame: usize,
@@ -99,7 +99,7 @@ impl From<&SliceMeta> for Anchor {
 #[derive(Default, TypePath)]
 pub struct AsepriteLoader;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AsepriteLoaderSettings {
     pub sampler: ImageSampler,
 }
