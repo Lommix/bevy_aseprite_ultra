@@ -1,6 +1,11 @@
 use crate::loader::{Aseprite, SliceMeta};
 use bevy::{
-    ecs::component::Mutable, prelude::*, sprite::Anchor, sprite_render::Material2d, ui::UiSystems,
+    ecs::component::Mutable,
+    pbr::{ExtendedMaterial, MaterialExtension},
+    prelude::*,
+    sprite::Anchor,
+    sprite_render::Material2d,
+    ui::UiSystems,
 };
 
 pub struct AsepriteSlicePlugin;
@@ -40,10 +45,11 @@ pub trait RenderSlice {
     type Extra<'e>;
     fn render_slice(
         &mut self,
-        aseprite: &Aseprite,
-        slice_meta: &SliceMeta,
-        extra: &mut Self::Extra<'_>,
-    );
+        _aseprite: &Aseprite,
+        _slice_meta: &SliceMeta,
+        _extra: &mut Self::Extra<'_>,
+    ) {
+    }
 }
 
 impl RenderSlice for ImageNode {
@@ -96,6 +102,27 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
             return;
         };
         material.render_slice(aseprite, slice_meta, &mut extra.1);
+    }
+}
+
+#[cfg(feature = "3d")]
+impl RenderSlice for StandardMaterial {
+    type Extra<'e> = ();
+}
+
+#[cfg(feature = "3d")]
+impl<B: Material + RenderSlice, E: MaterialExtension + RenderSlice> RenderSlice
+    for ExtendedMaterial<B, E>
+{
+    type Extra<'e> = (<B as RenderSlice>::Extra<'e>, <E as RenderSlice>::Extra<'e>);
+    fn render_slice(
+        &mut self,
+        aseprite: &Aseprite,
+        state: &SliceMeta,
+        extra: &mut Self::Extra<'_>,
+    ) {
+        self.base.render_slice(aseprite, state, &mut extra.0);
+        self.extension.render_slice(aseprite, state, &mut extra.1);
     }
 }
 
