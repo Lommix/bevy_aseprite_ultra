@@ -26,6 +26,7 @@ impl Plugin for AsepriteSlicePlugin {
 ///         &mut self,
 ///         aseprite: &Aseprite,
 ///         slice_meta: &SliceMeta,
+///         _nine_patch_behavior: NinePatchBehavior,
 ///         extra: &mut Self::Extra<'_>,
 ///     ) {
 ///         self.image = aseprite.atlas_image.clone();

@@ -1,6 +1,10 @@
 ## 0.10.0
 
 - bevy 0.20 compatibility
+- new: nine-patch (nine-slice) drawing for `AseSlice` slices which contain
+  nine-patch data. Control it with the optional `NinePatchBehavior` component.
+- breaking: `RenderSlice::render_slice` now takes a `NinePatchBehavior`
+  argument
 - fixed: the `3d` feature and `3d` example did not compile (`RenderSlice` impl
   for `MeshMaterial3d` was missing the `nine_patch_behavior` parameter)
 
