@@ -1,5 +1,8 @@
-use crate::error::AsepriteError;
-use aseprite_loader::{binary::chunks::tags::AnimationDirection, loader::{AsepriteFile, LayerSelection}};
+use crate::{error::AsepriteError, slice::NinePatchBehavior};
+use aseprite_loader::{
+    binary::chunks::tags::AnimationDirection,
+    loader::{AsepriteFile, LayerSelection},
+};
 use bevy::{
     asset::{io::Reader, AssetLoader, RenderAssetUsages},
     image::ImageSampler,
@@ -96,6 +99,30 @@ impl From<&SliceMeta> for Anchor {
     }
 }
 
+impl SliceMeta {
+    pub fn texture_slicer(&self, nine_patch_behavior: NinePatchBehavior) -> Option<TextureSlicer> {
+        match nine_patch_behavior {
+            NinePatchBehavior::Auto => self.nine_patch.map(nine_patch_to_texture_slicer),
+            NinePatchBehavior::Enabled => {
+                if self.nine_patch.is_none() {
+                    warn!("nine patch requested, but none available");
+                }
+                self.nine_patch.map(nine_patch_to_texture_slicer)
+            }
+            NinePatchBehavior::Disabled => None,
+        }
+    }
+}
+
+fn nine_patch_to_texture_slicer(nine_patch: Vec4) -> TextureSlicer {
+    TextureSlicer {
+        border: [nine_patch.x, nine_patch.y, nine_patch.z, nine_patch.w].into(),
+        center_scale_mode: SliceScaleMode::Stretch,
+        sides_scale_mode: SliceScaleMode::Stretch,
+        max_corner_scale: 1.0,
+    }
+}
+
 #[derive(Default, TypePath)]
 pub struct AsepriteLoader;
 
@@ -140,7 +167,7 @@ impl AssetLoader for AsepriteLoader {
         for (index, _frame) in raw.frames().iter().enumerate() {
             let (width, height) = raw.size();
             let mut buffer = vec![0; width as usize * height as usize * 4];
-            
+
             raw.render_frame(index, buffer.as_mut_slice(), &LayerSelection::All)?;
 
             let image = Image {
