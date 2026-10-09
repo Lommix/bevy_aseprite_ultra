@@ -4,7 +4,8 @@
 [![Crate](https://img.shields.io/crates/v/bevy_aseprite_ultra.svg)](https://crates.io/crates/bevy_aseprite_ultra)
 
 The ultimate bevy aseprite plugin. This plugin allows you to import aseprite files into bevy, with 100% unbreakable
-hot reloading. You can also import static sprites from an aseprite atlas type file using slices with functional pivot offsets!
+hot reloading. You can also import static sprites from an aseprite atlas type file using slices with functional pivot
+offsets and nine-patch (nine-slice) scaling!
 
 | Bevy Version | Plugin Version |
 | -----------: | -------------: |
@@ -24,14 +25,15 @@ hot reloading. You can also import static sprites from an aseprite atlas type fi
 - Frame duration, repeat, and animation direction
 - Layer visibility
 - Blend modes
-- Static slices and pivot offsets
+- Static slices with pivot offsets and nine-patch (nine-slice) data
 
 ## Features in bevy
 
 - Hot reload anything, anytime, anywhere!
 - Full control over animations using Components.
 - One shot animations and events when they finish.
-- Static sprites with slices. Use aseprite for all your icon and UI needs!
+- Static sprites with slices, pivot offsets and nine-patch scaling (opt in with the `NinePatchBehavior` component).
+  Use aseprite for all your icon and UI needs!
 - Render to custom material and write shaders ontop.
 - Asset processor which converts the aseprite file to a custom format.
 
