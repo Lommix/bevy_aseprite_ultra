@@ -23,7 +23,10 @@ jobs:
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libasound2-dev libudev-dev
+          sudo apt-get install --no-install-recommends -y \
+            libasound2-dev \
+            libudev-dev \
+            libwayland-dev
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
