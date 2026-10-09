@@ -34,7 +34,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                 border_radius: BorderRadius::all(Val::Px(15.)),
                 ..default()
             },
-            BorderColor::all(css::BLUE)
+            BorderColor::all(css::BLUE),
         ))
         .id();
 
@@ -68,7 +68,7 @@ fn setup(mut cmd: Commands, server: Res<AssetServer>) {
                 ..default()
             },
             AseAnimation {
-                aseprite: server.load("player.aseprite").into(),
+                aseprite: server.load("player.aseprite"),
                 animation: Animation::default().with_tag("walk-right"),
             },
             ImageNode::default(),

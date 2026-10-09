@@ -172,10 +172,8 @@ impl AssetLoader for ProcessedAsepriteLoader {
             settings.asset_usage,
         )?;
 
-        let atlas_layout_handle =
-            load_context.add_labeled_asset("atlas_layout", de.atlas_layout);
-        let atlas_texture_handle =
-            load_context.add_labeled_asset("atlas_texture", atlas_texture);
+        let atlas_layout_handle = load_context.add_labeled_asset("atlas_layout", de.atlas_layout);
+        let atlas_texture_handle = load_context.add_labeled_asset("atlas_texture", atlas_texture);
 
         Ok(Aseprite {
             atlas_layout: atlas_layout_handle,

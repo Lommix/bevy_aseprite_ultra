@@ -10,7 +10,7 @@ fn main() {
         .run();
 }
 
-fn setup<'a>(mut cmd: Commands, server: Res<AssetServer>) {
+fn setup(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((Camera2d, Transform::default().with_scale(Vec3::splat(0.15))));
 
     cmd.spawn((

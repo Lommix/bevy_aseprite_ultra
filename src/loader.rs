@@ -193,7 +193,7 @@ impl AssetLoader for AsepriteLoader {
             };
 
             frame_images.push(handle_id);
-            atlas_builder.add_texture(Some(handle_id), &image);
+            atlas_builder.add_texture(Some(handle_id), image);
         }
 
         // ----------------------------- atlas
@@ -212,20 +212,18 @@ impl AssetLoader for AsepriteLoader {
             let min = Vec2::new(slice_key.x as f32, slice_key.y as f32);
             let max = min + Vec2::new(slice_key.width as f32, slice_key.height as f32);
 
-            let pivot = match slice_key.pivot {
-                Some(pivot) => Some(Vec2::new(pivot.x as f32, pivot.y as f32)),
-                None => None,
-            };
+            let pivot = slice_key
+                .pivot
+                .map(|pivot| Vec2::new(pivot.x as f32, pivot.y as f32));
 
-            let nine_patch = match slice_key.nine_patch {
-                Some(nine_patch) => Some(Vec4::new(
+            let nine_patch = slice_key.nine_patch.map(|nine_patch| {
+                Vec4::new(
                     nine_patch.x as f32,
                     nine_patch.y as f32,
                     nine_patch.width as f32,
                     nine_patch.height as f32,
-                )),
-                None => None,
-            };
+                )
+            });
 
             let layout_id = layout.add_texture(URect::from_corners(min.as_uvec2(), max.as_uvec2()));
 

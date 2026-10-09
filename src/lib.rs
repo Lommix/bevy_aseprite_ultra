@@ -26,7 +26,10 @@ pub mod prelude {
 /// Quick guide:
 ///
 /// add the plugin to your game
-/// ```rust
+/// ```no_run
+/// use bevy::prelude::*;
+/// use bevy_aseprite_ultra::prelude::*;
+///
 /// fn main() {
 ///     App::new()
 ///         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
@@ -38,30 +41,41 @@ pub mod prelude {
 /// // spawn sprites, animations and ui
 /// fn setup(mut cmd: Commands, server: Res<AssetServer>) {
 ///     // ui animation
-///     cmd.spawn(AseUiAnimation {
-///         aseprite: server.load("player.aseprite").into(),
-///         animation: Animation::default().with_tag("walk-right"),
-///     });
+///     cmd.spawn((
+///         ImageNode::default(),
+///         AseAnimation {
+///             aseprite: server.load("player.aseprite"),
+///             animation: Animation::default().with_tag("walk-right"),
+///         },
+///     ));
 ///
 ///     // sprite animation
-///     cmd.spawn(AseSpriteAnimation {
-///         aseprite: server.load("player.aseprite").into(),
-///         animation: Animation::default().with_tag("walk-right"),
-///     });
+///     cmd.spawn((
+///         Sprite::default(),
+///         AseAnimation {
+///             aseprite: server.load("player.aseprite"),
+///             animation: Animation::default().with_tag("walk-right"),
+///         },
+///     ));
 ///
-///     // static sprite
-///     cmd.spawn(AseSpriteSlice {
-///         name: "ghost_red".into(),
-///         aseprite: server.load("ghost_slices.aseprite"),
-///     });
+///     // static sprite slice
+///     cmd.spawn((
+///         Sprite::default(),
+///         AseSlice {
+///             name: "ghost_red".into(),
+///             aseprite: server.load("ghost_slices.aseprite"),
+///         },
+///     ));
 ///
-///     // static ui
-///     cmd.spawn(AseUiSlice {
-///         name: "ghost_red".into(),
-///         aseprite: server.load("ghost_slices.aseprite"),
-///     });
+///     // static ui slice
+///     cmd.spawn((
+///         ImageNode::default(),
+///         AseSlice {
+///             name: "ghost_red".into(),
+///             aseprite: server.load("ghost_slices.aseprite"),
+///         },
+///     ));
 /// }
-///
 /// ```
 pub struct AsepriteUltraPlugin;
 impl Plugin for AsepriteUltraPlugin {

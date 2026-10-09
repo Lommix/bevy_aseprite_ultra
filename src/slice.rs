@@ -20,6 +20,16 @@ impl Plugin for AsepriteSlicePlugin {
 ///
 /// # Examples
 /// ```
+/// # use bevy::prelude::*;
+/// # use bevy_aseprite_ultra::prelude::*;
+/// #
+/// # struct MyMaterial {
+/// #     image: Handle<Image>,
+/// #     texture_min: UVec2,
+/// #     texture_max: UVec2,
+/// #     time: f32,
+/// # }
+/// #
 /// impl RenderSlice for MyMaterial {
 ///     type Extra<'e> = Res<'e, Time>;
 ///     fn render_slice(
@@ -141,6 +151,7 @@ pub struct AseSlice {
     pub aseprite: Handle<Aseprite>,
 }
 
+#[allow(clippy::type_complexity)]
 pub fn render_slice<T: RenderSlice + Component<Mutability = Mutable>>(
     mut slices: Query<(
         &mut T,

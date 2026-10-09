@@ -3,6 +3,7 @@ use bevy::image::TextureAtlasBuilderError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum AsepriteError {
     #[error("failed to build atlas")]
     TextureAtlasError(#[from] TextureAtlasBuilderError),

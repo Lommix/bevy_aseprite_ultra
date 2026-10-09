@@ -36,13 +36,23 @@ impl Plugin for AsepriteAnimationPlugin {
 ///
 /// # Examples
 /// ```
+/// # use bevy::prelude::*;
+/// # use bevy_aseprite_ultra::prelude::*;
+/// #
+/// # struct MyMaterial {
+/// #     image: Handle<Image>,
+/// #     texture_min: UVec2,
+/// #     texture_max: UVec2,
+/// #     time: f32,
+/// # }
+/// #
 /// impl RenderAnimation for MyMaterial {
 ///     type Extra<'e> = (Res<'e, Time>, Res<'e, Assets<TextureAtlasLayout>>);
 ///     fn render_animation(
 ///         &mut self,
-///        aseprite: &Aseprite,
-///        state: &AnimationState,
-///        extra: &mut Self::Extra<'_>,
+///         aseprite: &Aseprite,
+///         state: &AnimationState,
+///         extra: &mut Self::Extra<'_>,
 ///     ) {
 ///         let Some(atlas_layout) = extra.1.get(&aseprite.atlas_layout) else {
 ///             return;
@@ -431,8 +441,7 @@ pub fn update_aseprite_animation(
                     state.relative_frame = 0;
                     state.elapsed = std::time::Duration::ZERO;
                 } else {
-                    state.relative_frame =
-                        (state.relative_frame) % (range.end() - range.start() + 1);
+                    state.relative_frame %= range.end() - range.start() + 1;
                     state.current_frame = *range.start() + state.relative_frame;
                 }
             }
@@ -484,12 +493,7 @@ fn next_frame(
 
     let animation = &mut ase.animation;
 
-    let (range, direction) = match animation
-        .tag
-        .as_ref()
-        .map(|t| aseprite.tags.get(t))
-        .flatten()
-    {
+    let (range, direction) = match animation.tag.as_ref().and_then(|t| aseprite.tags.get(t)) {
         Some(meta) => {
             let dir = animation
                 .direction
@@ -570,8 +574,8 @@ fn next_frame(
             let (next, relative_next) = match state.current_direction {
                 PlayDirection::Forward => (state.current_frame + 1, state.relative_frame + 1),
                 PlayDirection::Backward => (
-                    state.current_frame.checked_sub(1).unwrap_or(0),
-                    state.relative_frame.checked_sub(1).unwrap_or(0),
+                    state.current_frame.saturating_sub(1),
+                    state.relative_frame.saturating_sub(1),
                 ),
             };
 

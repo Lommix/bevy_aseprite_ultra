@@ -42,11 +42,16 @@ offsets and nine-patch (nine-slice) scaling!
 ## Examples
 
 ```bash
+cargo run --example animation
 cargo run --example slices
-cargo run --example animations
+cargo run --example nine_patch
 cargo run --example ui
-cargo run --example asset_processing --features asset_processing
+cargo run --example queue
+cargo run --example manual
+cargo run --example move_player
+cargo run --example shader
 cargo run --example 3d --features 3d
+cargo run --example asset_processing --features asset_processing
 ```
 
 ![Example](docs/example.gif)
@@ -59,26 +64,24 @@ cargo run --example 3d --features 3d
 use bevy::prelude::*;
 use bevy_aseprite_ultra::prelude::*;
 
-...
-
 // Load an animation from an aseprite file
-fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
+fn spawn_demo_animation(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         AseAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right")
-                .with_repeat(AnimationRepeat::Count(1))
-                .with_speed(2.)
-                // Aseprite provides a repeat config per tag, which is beeing ignored on purpose.
+                // The aseprite repeat config for the tag is ignored on purpose.
                 .with_repeat(AnimationRepeat::Count(42))
-                // The direction is provided by the asperite config for the tag, but can be overwritten.
+                .with_speed(2.)
+                // The direction is provided by the aseprite config for the tag, but can be overwritten.
                 .with_direction(AnimationDirection::PingPong)
-                // you can also chain finite animations, loop animations will never finish
+                // You can also chain finite animations. Loop animations will never finish.
                 .with_then("walk-left", AnimationRepeat::Count(4))
                 .with_then("walk-up", AnimationRepeat::Loop),
         },
-        // The Render target. There are default impls for Sprite, Ui and 3D.
-        // You may also define your own. Checkout the examples.
+        // The render target. There are default impls for `Sprite`, `ImageNode`,
+        // `MeshMaterial2d` and `MeshMaterial3d`. You may also define your own.
+        // Check out the examples.
         Sprite {
             flip_x: true,
             ..default()
@@ -86,9 +89,9 @@ fn spawn_demo_animation(mut cmd : Commands, server : Res<Assetserver>){
     ));
 }
 
-// Load a static slice from an aseprite file
-// create for any static atlas with marked regions aka slices.
-fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
+// Load a static slice from an aseprite file.
+// Works for any static atlas with marked regions aka slices.
+fn spawn_demo_static_slice(mut cmd: Commands, server: Res<AssetServer>) {
     cmd.spawn((
         AseSlice {
             name: "ghost_red".into(),
@@ -98,36 +101,44 @@ fn spawn_demo_static_slice(mut cmd : Commands, server : Res<Assetserver>){
     ));
 }
 
-// animation events
-// this is useful for one shot animations like explosions
-fn despawn_on_finish(mut events: EventReader<AnimationEvents>, mut cmd : Commands){
+// Animation events.
+// This is useful for one shot animations like explosions.
+fn despawn_on_finish(mut events: MessageReader<AnimationEvents>, mut cmd: Commands) {
     for event in events.read() {
         match event {
-            AnimationEvents::Finished(entity) => cmd.entity(*entity).despawn_recursive(),
-            // you can also listen for loop cycle repeats
+            AnimationEvents::Finished(entity) => cmd.entity(*entity).despawn(),
+            // You can also listen for loop cycle repeats
             AnimationEvents::LoopCycleFinished(_entity) => (),
         };
     }
 }
 ```
 
-## Bevy Ui
+## Bevy UI
 
-Nothing to changes. Just add the animation/slice together with an `ImageNode`.
+Nothing special to do. Just add the animation or slice together with an `ImageNode`.
 
 ```rust
-// animations in bevy ui
-cmd.spawn((
-        Button,
+use bevy::prelude::*;
+use bevy_aseprite_ultra::prelude::*;
+
+fn spawn_ui(mut cmd: Commands, server: Res<AssetServer>) {
+    // animations in bevy ui
+    cmd.spawn((
+        Node {
+            width: Val::Px(100.),
+            height: Val::Px(100.),
+            ..default()
+        },
         ImageNode::default(), // RenderTarget
         AseAnimation {
             aseprite: server.load("player.aseprite"),
             animation: Animation::tag("walk-right"),
         },
-));
+    ));
 
-// slices in bevy ui
-cmd.spawn((
+    // slices in bevy ui
+    cmd.spawn((
         Node {
             width: Val::Px(100.),
             height: Val::Px(100.),
@@ -139,25 +150,30 @@ cmd.spawn((
             name: "ghost_red".into(),
             aseprite: server.load("ghost_slices.aseprite"),
         },
-));
+    ));
+}
 ```
 
 ## Enable Asset Processing
 
 Simply enable asset processing in your `AssetPlugin` like so:
 
-```rust
-App::new()
-    .add_plugins(DefaultPlugins.set(AssetPlugin {
-        mode: AssetMode::Processed,
-        ..Default::default(),
-    }))
-    .run();
+```rust,no_run
+use bevy::prelude::*;
+
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins.set(AssetPlugin {
+            mode: AssetMode::Processed,
+            ..Default::default()
+        }))
+        .run();
+}
 ```
 
 Then run with the feature `asset_processing` enabled, e.g.:
 
-```
+```bash
 cargo run --features asset_processing
 ```
 
