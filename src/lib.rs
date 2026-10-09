@@ -29,9 +29,7 @@ pub mod prelude {
 /// ```rust
 /// fn main() {
 ///     App::new()
-///         .add_plugins(DefaultPlugins.set(ImagePlugin {
-///             default_sampler: bevy::render::texture::ImageSamplerDescriptor::nearest(),
-///         }))
+///         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
 ///         .add_plugins(AsepriteUltraPlugin)
 ///         .add_systems(Startup, setup)
 ///         .run();

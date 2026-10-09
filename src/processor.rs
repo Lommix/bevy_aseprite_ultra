@@ -122,6 +122,7 @@ impl AssetSaver for AsepriteSaver {
             asset_usage: atlas_texture.asset_usage,
             texture_format: None,
             array_layout: None,
+            expand_grayscale: true,
         })
     }
 }

@@ -1,3 +1,9 @@
+## 0.10.0
+
+- bevy 0.20 compatibility
+- fixed: the `3d` feature and `3d` example did not compile (`RenderSlice` impl
+  for `MeshMaterial3d` was missing the `nine_patch_behavior` parameter)
+
 ## 0.9.0
 
 - bevy 0.19 compatibility

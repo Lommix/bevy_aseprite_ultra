@@ -1,15 +1,13 @@
 //! This example is identical to the `animation` example, except it uses asset processing.
 
-use bevy::{image::ImageSamplerDescriptor, prelude::*};
+use bevy::prelude::*;
 use bevy_aseprite_ultra::prelude::*;
 
 fn main() {
     App::new()
         .add_plugins(
             DefaultPlugins
-                .set(ImagePlugin {
-                    default_sampler: ImageSamplerDescriptor::nearest(),
-                })
+                .set(ImagePlugin::default_nearest())
                 .set(AssetPlugin {
                     mode: AssetMode::Processed,
                     // You don't need to do this in your own project, here we are changing the

@@ -110,12 +110,13 @@ impl<M: Material + RenderSlice> RenderSlice for MeshMaterial3d<M> {
         &mut self,
         aseprite: &Aseprite,
         slice_meta: &SliceMeta,
+        nine_patch_behavior: NinePatchBehavior,
         extra: &mut Self::Extra<'_>,
     ) {
         let Some(mut material) = extra.0.get_mut(&*self) else {
             return;
         };
-        material.render_slice(aseprite, slice_meta, &mut extra.1);
+        material.render_slice(aseprite, slice_meta, nine_patch_behavior, &mut extra.1);
     }
 }
 

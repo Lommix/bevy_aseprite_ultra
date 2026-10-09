@@ -1,5 +1,4 @@
 use crate::loader::Aseprite;
-use anyhow::Context;
 use aseprite_loader::binary::chunks::tags::AnimationDirection as RawDirection;
 use bevy::{
     app::{App, Plugin, PostUpdate, PreUpdate},

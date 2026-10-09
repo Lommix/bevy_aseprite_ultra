@@ -1,4 +1,4 @@
-use bevy::{image::ImageSamplerDescriptor, prelude::*};
+use bevy::prelude::*;
 use bevy_aseprite_ultra::prelude::*;
 
 #[derive(Debug, PartialEq)]
@@ -22,9 +22,7 @@ pub struct Player {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(ImagePlugin {
-            default_sampler: ImageSamplerDescriptor::nearest(),
-        }))
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(AsepriteUltraPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (control_player, player_animation))
