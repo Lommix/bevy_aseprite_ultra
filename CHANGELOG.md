@@ -1,5 +1,10 @@
 ## 0.10.0
 
+- new: per-asset layer selection. `AsepriteLoaderSettings::layer_selection`
+  selects `All`, `Visible`, or `Mask(Vec<String>)` layers.
+- breaking: hidden layers are no longer rendered by default. Use
+  `LayerSelectionSetting::All` to restore the old output.
+- breaking: `AsepriteLoaderSettings` gained a `layer_selection` field.
 - bevy 0.20 compatibility
 - new: nine-patch (nine-slice) drawing for `AseSlice` slices which contain
   nine-patch data. Control it with the optional `NinePatchBehavior` component.

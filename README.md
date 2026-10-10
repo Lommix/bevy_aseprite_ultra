@@ -24,6 +24,7 @@ offsets and nine-patch (nine-slice) scaling!
 - Tags
 - Frame duration, repeat, and animation direction
 - Layer visibility
+- Per-asset layer selection: all layers, visible layers, or layers by name
 - Blend modes
 - Static slices with pivot offsets and nine-patch (nine-slice) data
 
@@ -153,6 +154,33 @@ fn spawn_ui(mut cmd: Commands, server: Res<AssetServer>) {
     ));
 }
 ```
+
+## Layer selection
+
+By default, only layers that are visible in the aseprite file are rendered.
+Change this per asset with the loader settings:
+
+```rust
+use bevy::prelude::*;
+use bevy_aseprite_ultra::prelude::*;
+
+fn load_player(server: Res<AssetServer>) -> Handle<Aseprite> {
+    server
+        .load_builder()
+        .with_settings::<AsepriteLoaderSettings>(|settings| {
+            settings.layer_selection = LayerSelectionSetting::Mask(vec!["body".into()]);
+        })
+        .load("player.aseprite")
+}
+```
+
+`LayerSelectionSetting::All` includes hidden layers.
+`LayerSelectionSetting::Visible` is the default.
+`LayerSelectionSetting::Mask` renders only layers with a listed name,
+visible or not.
+Unknown names are logged as a warning and ignored.
+
+With asset processing enabled, set the same option in the `.aseprite.meta` file.
 
 ## Enable Asset Processing
 

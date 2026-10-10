@@ -126,15 +126,48 @@ fn nine_patch_to_texture_slicer(nine_patch: Vec4) -> TextureSlicer {
 #[derive(Default, TypePath)]
 pub struct AsepriteLoader;
 
+/// Selects which layers are rendered into the atlas on load.
+///
+/// The selection is part of the loader settings, therefore it is configurable
+/// per asset:
+///
+/// ```no_run
+/// use bevy::prelude::*;
+/// use bevy_aseprite_ultra::prelude::*;
+///
+/// fn load_player(server: Res<AssetServer>) -> Handle<Aseprite> {
+///     server
+///         .load_builder()
+///         .with_settings::<AsepriteLoaderSettings>(|settings| {
+///             settings.layer_selection = LayerSelectionSetting::Mask(vec!["body".into()]);
+///         })
+///         .load("player.aseprite")
+/// }
+/// ```
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
+pub enum LayerSelectionSetting {
+    /// Render all layers, including layers hidden in the aseprite file.
+    All,
+    /// Render layers marked visible in the aseprite file.
+    #[default]
+    Visible,
+    /// Render only layers with a matching name, visible or not.
+    Mask(Vec<String>),
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AsepriteLoaderSettings {
     pub sampler: ImageSampler,
+    /// Which layers to render into the atlas.
+    #[serde(default)]
+    pub layer_selection: LayerSelectionSetting,
 }
 
 impl Default for AsepriteLoaderSettings {
     fn default() -> Self {
         Self {
             sampler: ImageSampler::nearest(),
+            layer_selection: LayerSelectionSetting::Visible,
         }
     }
 }
@@ -158,6 +191,20 @@ impl AssetLoader for AsepriteLoader {
 
         let raw = AsepriteFile::load(&bytes)?;
 
+        let layer_selection = match &settings.layer_selection {
+            LayerSelectionSetting::All => LayerSelection::All,
+            LayerSelectionSetting::Visible => LayerSelection::Visible,
+            LayerSelectionSetting::Mask(names) => {
+                for name in names.iter() {
+                    if !raw.layers().iter().any(|layer| &layer.name == name) {
+                        warn!("layer selection mask contains an unknown layer: {name}");
+                    }
+                }
+                let names = names.iter().map(String::as_str).collect::<Vec<_>>();
+                raw.select_layers_by_name(&names)
+            }
+        };
+
         let mut frame_images = Vec::new();
         let mut atlas_builder = TextureAtlasBuilder::default();
         atlas_builder.max_size(UVec2::splat(4096));
@@ -168,7 +215,7 @@ impl AssetLoader for AsepriteLoader {
             let (width, height) = raw.size();
             let mut buffer = vec![0; width as usize * height as usize * 4];
 
-            raw.render_frame(index, buffer.as_mut_slice(), &LayerSelection::All)?;
+            raw.render_frame(index, buffer.as_mut_slice(), &layer_selection)?;
 
             let image = Image {
                 sampler: settings.sampler.clone(),
